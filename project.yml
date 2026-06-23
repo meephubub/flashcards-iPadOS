@@ -5,12 +5,25 @@ options:
     iOS: "16.0"
   xcodeVersion: "15.0"
 
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift.git
+    from: "2.0.0"
+  swift-fsrs:
+    url: https://github.com/open-spaced-repetition/swift-fsrs
+    from: "1.0.0"
+
 targets:
   FlashcardsiPadOS:
     type: application
     platform: iOS
     sources:
       - path: Sources
+    dependencies:
+      - package: Supabase
+        product: Supabase
+      - package: swift-fsrs
+        product: FSRS
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.flashcards.ipados

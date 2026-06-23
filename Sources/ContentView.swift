@@ -1,18 +1,25 @@
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        ZStack {
-            Color.black
-                .ignoresSafeArea()
+    @Environment(AuthManager.self) private var authManager
 
-            Text("FLASHCARDS")
-                .font(.system(size: 48, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+    var body: some View {
+        Group {
+            if authManager.isAuthenticated {
+                NavigationStack {
+                    DecksListView()
+                }
+                .preferredColorScheme(.dark)
+            } else {
+                LoginView()
+                    .preferredColorScheme(.dark)
+            }
         }
+        .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
     }
 }
 
 #Preview {
     ContentView()
+        .environment(AuthManager())
 }
