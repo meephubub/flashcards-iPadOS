@@ -9,14 +9,9 @@ struct DeckDetailView: View {
     @State private var isLoading: Bool = false
     @State private var navigateToStudy: Bool = false
 
-    private let bgColor = Color(hex: "#0A0A0A")
-    private let surfaceColor = Color(hex: "#1A1A1A")
-    private let borderColor = Color(hex: "#2A2A2A")
-    private let secondaryText = Color(hex: "#8A8A8A")
-
     var body: some View {
         ZStack(alignment: .bottom) {
-            bgColor.ignoresSafeArea()
+            Color(.systemBackground).ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Stats row
@@ -24,9 +19,9 @@ struct DeckDetailView: View {
                     statCell(value: "\(deck.cardCount ?? cards.count)", label: "Total")
                     divider
                     statCell(value: "\(dueCount)", label: "Due")
-                    if let last = deck.lastStudied {
+                    if let last = deck.lastStudied, last != "Never" {
                         divider
-                        statCell(value: DateFormatter.lastStudiedFormatter.string(from: last), label: "Last Studied")
+                        statCell(value: last, label: "Last Studied")
                     }
                 }
                 .padding(.horizontal, 20)
@@ -35,17 +30,17 @@ struct DeckDetailView: View {
 
                 if isLoading {
                     Spacer()
-                    ProgressView().tint(.white)
+                    ProgressView()
                     Spacer()
                 } else if cards.isEmpty {
                     Spacer()
                     VStack(spacing: 12) {
                         Image(systemName: "rectangle.stack")
                             .font(.system(size: 40, weight: .thin))
-                            .foregroundColor(secondaryText)
+                            .foregroundStyle(.secondary)
                         Text("No cards in this deck")
                             .font(.system(size: 15, weight: .medium, design: .rounded))
-                            .foregroundColor(secondaryText)
+                            .foregroundStyle(.secondary)
                     }
                     Spacer()
                 } else {
@@ -64,11 +59,12 @@ struct DeckDetailView: View {
             // Study button
             VStack(spacing: 0) {
                 LinearGradient(
-                    colors: [bgColor.opacity(0), bgColor],
+                    colors: [Color(.systemBackground).opacity(0), Color(.systemBackground)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
                 .frame(height: 40)
+                .allowsHitTesting(false)
 
                 Button {
                     HapticManager.mediumImpact()
@@ -80,27 +76,21 @@ struct DeckDetailView: View {
                         Text(dueCount > 0 ? "Study \(dueCount) Due Cards" : "Study All Cards")
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                     }
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .fill(Color.white.opacity(0.1))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                    .stroke(borderColor, lineWidth: 1)
-                            )
+                            .fill(Color.accentColor)
                     )
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
-                .background(bgColor)
+                .background(Color(.systemBackground))
             }
         }
         .navigationTitle(deck.name)
         .navigationBarTitleDisplayMode(.large)
-        .toolbarBackground(bgColor, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
         .navigationDestination(isPresented: $navigateToStudy) {
             if let userId = authManager.userId {
                 StudyView(deck: deck, userId: userId)
@@ -119,12 +109,12 @@ struct DeckDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(card.front)
                     .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(2)
 
                 Text(card.back)
                     .font(.system(size: 12, weight: .regular, design: .rounded))
-                    .foregroundColor(secondaryText)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             Spacer()
@@ -133,10 +123,10 @@ struct DeckDetailView: View {
         .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(surfaceColor)
+                .fill(Color(.secondarySystemBackground))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(borderColor, lineWidth: 1)
+                        .stroke(Color(.separator).opacity(0.4), lineWidth: 1)
                 )
         )
         .padding(.vertical, 3)
@@ -149,19 +139,19 @@ struct DeckDetailView: View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 11, weight: .regular, design: .rounded))
-                .foregroundColor(secondaryText)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
     }
 
     private var divider: some View {
         Rectangle()
-            .fill(Color(hex: "#2A2A2A"))
+            .fill(Color(.separator).opacity(0.5))
             .frame(width: 1, height: 36)
     }
 
@@ -180,7 +170,7 @@ struct DeckDetailView: View {
                 return due <= now
             }.count
         } catch {
-            // silently fail; list will be empty
+            // silently fail; card list will be empty
         }
     }
 }

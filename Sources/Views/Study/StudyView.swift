@@ -2,17 +2,21 @@ import SwiftUI
 
 struct StudyView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var viewModel: StudyViewModel
-
-    private let bgColor = Color(hex: "#0A0A0A")
-    private let surfaceColor = Color(hex: "#1A1A1A")
-    private let borderColor = Color(hex: "#2A2A2A")
-    private let secondaryText = Color(hex: "#8A8A8A")
 
     init(deck: Deck, userId: UUID) {
         _viewModel = State(initialValue: StudyViewModel(deck: deck, userId: userId))
     }
+
+    // MARK: - Adaptive colors
+
+    private var bgColor: Color { Color(.systemBackground) }
+    private var surfaceColor: Color { Color(.secondarySystemBackground) }
+    private var borderColor: Color { Color(.separator).opacity(0.5) }
+    private var secondaryText: Color { Color(.secondaryLabel) }
+    private var timerWarningColor: Color { Color(.systemRed) }
 
     var body: some View {
         ZStack {
@@ -21,7 +25,6 @@ struct StudyView: View {
             switch viewModel.state {
             case .loading:
                 ProgressView()
-                    .tint(.white)
 
             case .studying, .reviewing:
                 studyContent
@@ -48,7 +51,6 @@ struct StudyView: View {
     @ViewBuilder
     private var studyContent: some View {
         VStack(spacing: 0) {
-            // Top bar
             topBar
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
@@ -56,7 +58,6 @@ struct StudyView: View {
 
             Spacer()
 
-            // Card
             if let card = viewModel.currentCard {
                 cardContent(card: card)
                     .transition(.asymmetric(
@@ -68,7 +69,6 @@ struct StudyView: View {
 
             Spacer()
 
-            // Bottom controls
             bottomControls
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
@@ -81,16 +81,15 @@ struct StudyView: View {
         HStack(alignment: .center) {
             Text(viewModel.deck.name)
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
                 .lineLimit(1)
 
             Spacer()
 
             HStack(spacing: 16) {
-                // Cards remaining pill
                 Text("\(viewModel.cardsRemaining) left")
                     .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundColor(secondaryText)
+                    .foregroundStyle(secondaryText)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(
@@ -99,10 +98,9 @@ struct StudyView: View {
                             .overlay(Capsule().stroke(borderColor, lineWidth: 1))
                     )
 
-                // Timer
                 Text(viewModel.timerString)
                     .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                    .foregroundColor(viewModel.secondsRemaining < 120 ? Color(hex: "#FF6B6B") : secondaryText)
+                    .foregroundStyle(viewModel.secondsRemaining < 120 ? timerWarningColor : secondaryText)
                     .animation(.easeInOut, value: viewModel.secondsRemaining < 120)
             }
         }
@@ -113,15 +111,13 @@ struct StudyView: View {
     @ViewBuilder
     private func cardContent(card: Card) -> some View {
         VStack(spacing: 0) {
-            // Front
             Text(card.front)
                 .font(.system(size: 28, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
                 .fixedSize(horizontal: false, vertical: true)
 
-            // Divider + Back (revealed)
             if viewModel.isShowingAnswer {
                 Rectangle()
                     .fill(borderColor)
@@ -132,7 +128,7 @@ struct StudyView: View {
 
                 Text(card.back)
                     .font(.system(size: 22, weight: .regular, design: .rounded))
-                    .foregroundColor(Color(hex: "#CCCCCC"))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
                     .fixedSize(horizontal: false, vertical: true)
@@ -148,28 +144,25 @@ struct StudyView: View {
     private var bottomControls: some View {
         VStack(spacing: 16) {
             if !viewModel.isShowingAnswer {
-                // Show hint
                 Text("space")
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundColor(secondaryText)
+                    .foregroundStyle(secondaryText)
 
                 showButton
             } else {
-                // Rating hints
                 HStack {
                     Text("1 → Again")
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundColor(secondaryText)
+                        .foregroundStyle(secondaryText)
                     Spacer()
                     Text("space → Good")
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundColor(secondaryText)
+                        .foregroundStyle(secondaryText)
                 }
 
                 ratingButtons
             }
 
-            // Exit row
             HStack {
                 Button {
                     HapticManager.lightImpact()
@@ -181,14 +174,14 @@ struct StudyView: View {
                         Text("Exit")
                             .font(.system(size: 13, weight: .medium, design: .rounded))
                     }
-                    .foregroundColor(secondaryText)
+                    .foregroundStyle(secondaryText)
                 }
 
                 Spacer()
 
                 Text("esc Exit")
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundColor(borderColor)
+                    .foregroundStyle(Color(.tertiaryLabel))
             }
         }
     }
@@ -203,12 +196,12 @@ struct StudyView: View {
         } label: {
             Text("Show")
                 .font(.system(size: 17, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
                 .background(
                     RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .fill(Color(hex: "#1C1C2E"))
+                        .fill(surfaceColor)
                         .overlay(
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
                                 .stroke(borderColor, lineWidth: 1)
@@ -222,11 +215,10 @@ struct StudyView: View {
 
     private var ratingButtons: some View {
         HStack(spacing: 12) {
-            // Again
             VStack(spacing: 6) {
                 Text(viewModel.nextDueForAgain)
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundColor(secondaryText)
+                    .foregroundStyle(secondaryText)
 
                 Button {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -235,25 +227,24 @@ struct StudyView: View {
                 } label: {
                     Text("Again")
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.primary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .background(
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                .fill(Color.clear)
+                                .fill(surfaceColor)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 1.5)
+                                        .stroke(Color(.systemRed).opacity(0.4), lineWidth: 1.5)
                                 )
                         )
                 }
             }
 
-            // Good
             VStack(spacing: 6) {
                 Text(viewModel.nextDueForGood)
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundColor(secondaryText)
+                    .foregroundStyle(secondaryText)
 
                 Button {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -262,16 +253,12 @@ struct StudyView: View {
                 } label: {
                     Text("Good")
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .background(
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                .fill(Color(hex: "#1C1C2E"))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                        .stroke(borderColor, lineWidth: 1)
-                                )
+                                .fill(Color.accentColor)
                         )
                 }
             }
@@ -285,15 +272,15 @@ struct StudyView: View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.circle")
                 .font(.system(size: 56, weight: .thin))
-                .foregroundColor(.white)
+                .foregroundStyle(Color.accentColor)
 
             Text("Session Complete")
                 .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
 
             Text("\(viewModel.cardsStudiedCount) cards studied")
                 .font(.system(size: 15, weight: .regular, design: .rounded))
-                .foregroundColor(Color(hex: "#8A8A8A"))
+                .foregroundStyle(.secondary)
 
             Button {
                 HapticManager.lightImpact()
@@ -301,14 +288,14 @@ struct StudyView: View {
             } label: {
                 Text("Done")
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.primary)
                     .frame(width: 160, height: 50)
                     .background(
                         RoundedRectangle(cornerRadius: 25, style: .continuous)
-                            .fill(Color(hex: "#1C1C2E"))
+                            .fill(surfaceColor)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 25, style: .continuous)
-                                    .stroke(Color(hex: "#2A2A2A"), lineWidth: 1)
+                                    .stroke(borderColor, lineWidth: 1)
                             )
                     )
             }

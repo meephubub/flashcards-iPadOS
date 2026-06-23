@@ -1,16 +1,17 @@
 import Foundation
 
 struct CardProgress: Codable, Identifiable {
-    let id: UUID
-    let cardId: UUID
+    let id: Int
+    let cardId: Int
     let easeFactor: Double?
-    let interval: Double?
+    let interval: Int?
     let repetitions: Int?
     let dueDate: Date?
     let lastReviewed: Date?
-    let fsrsState: String?
-    let fsrsParams: String?
-    let userId: UUID?
+    /// Stored as JSONB — decoded as a raw string for passing to FSRSService.
+    let fsrsState: AnyCodable?
+    let fsrsParams: AnyCodable?
+    let userId: UUID
     let createdAt: Date?
     let updatedAt: Date?
 

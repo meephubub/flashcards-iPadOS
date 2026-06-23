@@ -9,84 +9,90 @@ struct DecksListView: View {
     @State private var errorMessage: String?
     @State private var searchTask: Task<Void, Never>?
 
-    private let bgColor = Color(hex: "#0A0A0A")
-    private let surfaceColor = Color(hex: "#1A1A1A")
-    private let borderColor = Color(hex: "#2A2A2A")
-    private let secondaryText = Color(hex: "#8A8A8A")
-
     var body: some View {
-        ZStack {
-            bgColor.ignoresSafeArea()
+        VStack(spacing: 0) {
+            // Search bar
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                    .font(.system(size: 15, weight: .medium))
 
-            VStack(spacing: 0) {
-                // Search bar
-                HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(secondaryText)
-                        .font(.system(size: 15, weight: .medium))
-
-                    TextField("Search decks", text: $searchText)
-                        .font(.system(size: 15, weight: .regular, design: .rounded))
-                        .foregroundColor(.white)
-                        .autocorrectionDisabled()
-                        .autocapitalization(.none)
-                        .onChange(of: searchText) { _, new in
-                            debounceSearch(query: new)
-                        }
-
-                    if !searchText.isEmpty {
-                        Button {
-                            searchText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(secondaryText)
-                        }
+                TextField("Search decks", text: $searchText)
+                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .autocorrectionDisabled()
+                    .autocapitalization(.none)
+                    .onChange(of: searchText) { _, new in
+                        debounceSearch(query: new)
                     }
-                }
-                .padding(.horizontal, 16)
-                .frame(height: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(surfaceColor)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(borderColor, lineWidth: 1)
-                        )
-                )
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 12)
 
-                if isLoading && decks.isEmpty {
-                    Spacer()
-                    ProgressView()
-                        .tint(.white)
-                    Spacer()
-                } else if decks.isEmpty {
-                    emptyState
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 1) {
-                            ForEach(decks) { deck in
-                                NavigationLink(destination: DeckDetailView(deck: deck)) {
-                                    DeckRowView(deck: deck)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 32)
-                    }
-                    .refreshable {
-                        await loadDecks()
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
+            .padding(.horizontal, 16)
+            .frame(height: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color(.separator).opacity(0.5), lineWidth: 1)
+                    )
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            if isLoading && decks.isEmpty {
+                Spacer()
+                ProgressView()
+                Spacer()
+            } else if let error = errorMessage {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 36, weight: .thin))
+                        .foregroundStyle(.secondary)
+                    Text(error)
+                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                    Button("Retry") {
+                        errorMessage = nil
+                        Task { await loadDecks() }
+                    }
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                }
+                Spacer()
+            } else if decks.isEmpty {
+                emptyState
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 1) {
+                        ForEach(decks) { deck in
+                            NavigationLink(destination: DeckDetailView(deck: deck)) {
+                                DeckRowView(deck: deck)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 32)
+                }
+                .refreshable {
+                    await loadDecks()
+                }
+            }
         }
+        .background(Color(.systemBackground))
         .navigationTitle("Decks")
         .navigationBarTitleDisplayMode(.large)
-        .toolbarBackground(bgColor, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -95,7 +101,7 @@ struct DecksListView: View {
                 } label: {
                     Text("Sign Out")
                         .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundColor(secondaryText)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -112,11 +118,11 @@ struct DecksListView: View {
         VStack(spacing: 12) {
             Image(systemName: searchText.isEmpty ? "rectangle.stack" : "magnifyingglass")
                 .font(.system(size: 40, weight: .thin))
-                .foregroundColor(secondaryText)
+                .foregroundStyle(.secondary)
 
             Text(searchText.isEmpty ? "No decks yet" : "No results for \"\(searchText)\"")
                 .font(.system(size: 16, weight: .medium, design: .rounded))
-                .foregroundColor(secondaryText)
+                .foregroundStyle(.secondary)
         }
         Spacer()
     }
@@ -126,6 +132,7 @@ struct DecksListView: View {
     private func loadDecks() async {
         guard let userId = authManager.userId else { return }
         isLoading = true
+        errorMessage = nil
         defer { isLoading = false }
         do {
             if searchText.isEmpty {
@@ -154,10 +161,6 @@ struct DecksListView: View {
 struct DeckRowView: View {
     let deck: Deck
 
-    private let surfaceColor = Color(hex: "#1A1A1A")
-    private let borderColor = Color(hex: "#2A2A2A")
-    private let secondaryText = Color(hex: "#8A8A8A")
-
     @State private var isPressed: Bool = false
 
     var body: some View {
@@ -165,20 +168,20 @@ struct DeckRowView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(deck.name)
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
 
                 HStack(spacing: 12) {
                     if let count = deck.cardCount {
                         Label("\(count) cards", systemImage: "rectangle.on.rectangle")
                             .font(.system(size: 12, weight: .regular, design: .rounded))
-                            .foregroundColor(secondaryText)
+                            .foregroundStyle(.secondary)
                     }
 
-                    if let last = deck.lastStudied {
-                        Label(DateFormatter.lastStudiedFormatter.string(from: last), systemImage: "clock")
+                    if let last = deck.lastStudied, last != "Never" {
+                        Label(last, systemImage: "clock")
                             .font(.system(size: 12, weight: .regular, design: .rounded))
-                            .foregroundColor(secondaryText)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -187,16 +190,18 @@ struct DeckRowView: View {
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(secondaryText)
+                .foregroundStyle(.tertiary)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(isPressed ? Color(hex: "#222222") : surfaceColor)
+                .fill(isPressed
+                      ? Color(.secondarySystemBackground).opacity(0.7)
+                      : Color(.secondarySystemBackground))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(borderColor, lineWidth: 1)
+                        .stroke(Color(.separator).opacity(0.4), lineWidth: 1)
                 )
         )
         .scaleEffect(isPressed ? 0.98 : 1.0)

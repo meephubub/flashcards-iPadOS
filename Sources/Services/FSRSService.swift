@@ -96,14 +96,24 @@ struct FSRSService {
     // MARK: - State loading
 
     private static func loadState(from progress: CardProgress?) -> FSRSState {
-        guard
-            let json  = progress?.fsrsState,
-            let data  = json.data(using: .utf8)
-        else { return .new }
-
+        // fsrs_state is JSONB — may arrive as a String or a nested object via AnyCodable
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode(FSRSState.self, from: data)) ?? .new
+
+        if let anyCodable = progress?.fsrsState {
+            // Case 1: the value was stored as a JSON string (stringified JSON)
+            if let jsonString = anyCodable.value as? String,
+               let data = jsonString.data(using: .utf8),
+               let state = try? decoder.decode(FSRSState.self, from: data) {
+                return state
+            }
+            // Case 2: supabase returned it as a decoded dict — re-encode then decode
+            if let encoded = try? JSONEncoder().encode(anyCodable),
+               let state = try? decoder.decode(FSRSState.self, from: encoded) {
+                return state
+            }
+        }
+        return .new
     }
 
     // MARK: - Core scheduling
