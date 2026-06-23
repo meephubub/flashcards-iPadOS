@@ -130,17 +130,23 @@ struct DecksListView: View {
     // MARK: - Data loading
 
     private func loadDecks() async {
-        guard let userId = authManager.userId else { return }
+        guard let userId = authManager.userId else {
+            print("[v0] loadDecks: no userId, skipping")
+            return
+        }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         do {
+            print("[v0] loadDecks: fetching for userId=\(userId)")
             if searchText.isEmpty {
                 decks = try await DeckService.fetchDecks(for: userId)
             } else {
                 decks = try await DeckService.searchDecks(query: searchText, userId: userId)
             }
+            print("[v0] loadDecks: got \(decks.count) decks")
         } catch {
+            print("[v0] loadDecks error: \(error)")
             errorMessage = error.localizedDescription
         }
     }
