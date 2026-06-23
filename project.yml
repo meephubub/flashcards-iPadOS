@@ -1,0 +1,22 @@
+name: FlashcardsiPadOS
+options:
+  bundleIdPrefix: com.flashcards
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15.0"
+
+targets:
+  FlashcardsiPadOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.flashcards.ipados
+        INFOPLIST_FILE: Sources/Info.plist
+        GENERATE_INFOPLIST_FILE: false
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
