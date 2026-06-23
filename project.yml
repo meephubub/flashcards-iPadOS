@@ -2,7 +2,7 @@ name: FlashcardsiPadOS
 options:
   bundleIdPrefix: com.flashcards
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "26.0"
   xcodeVersion: "15.0"
 
 packages:
