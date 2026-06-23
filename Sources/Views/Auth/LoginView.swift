@@ -8,12 +8,11 @@ struct LoginView: View {
     @State private var isSignUp: Bool = false
     @State private var showError: Bool = false
 
-    // Design constants
-    private let bgColor = Color(hex: "#0A0A0A")
-    private let surfaceColor = Color(hex: "#1A1A1A")
-    private let borderColor = Color(hex: "#2A2A2A")
-    private let accentColor = Color(hex: "#1C1C2E")
-    private let secondaryText = Color(hex: "#8A8A8A")
+    // Adaptive design constants
+    private let bgColor = Color(.systemBackground)
+    private let surfaceColor = Color(.secondarySystemBackground)
+    private let borderColor = Color(.separator).opacity(0.5)
+    private let secondaryText = Color(.secondaryLabel)
 
     var body: some View {
         ZStack {
@@ -26,12 +25,12 @@ struct LoginView: View {
                 VStack(spacing: 8) {
                     Text("FLASHCARDS")
                         .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.primary)
                         .tracking(6)
 
                     Text(isSignUp ? "Create your account" : "Welcome back")
                         .font(.system(size: 15, weight: .regular, design: .rounded))
-                        .foregroundColor(secondaryText)
+                        .foregroundStyle(secondaryText)
                 }
                 .padding(.bottom, 56)
 
@@ -46,7 +45,7 @@ struct LoginView: View {
                 if let error = authManager.errorMessage {
                     Text(error)
                         .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundColor(Color(hex: "#FF4444"))
+                        .foregroundStyle(Color(.systemRed))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                         .padding(.bottom, 16)
@@ -71,18 +70,14 @@ struct LoginView: View {
                         } else {
                             Text(isSignUp ? "Create Account" : "Sign In")
                                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                .foregroundColor(.white)
+                                .foregroundStyle(.white)
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .fill(Color.white.opacity(0.1))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .stroke(borderColor, lineWidth: 1)
+                            .fill(Color.accentColor)
                     )
                 }
                 .disabled(authManager.isLoading || email.isEmpty || password.isEmpty)
@@ -97,9 +92,9 @@ struct LoginView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text(isSignUp ? "Already have an account?" : "Don't have an account?")
-                            .foregroundColor(secondaryText)
+                            .foregroundStyle(secondaryText)
                         Text(isSignUp ? "Sign In" : "Sign Up")
-                            .foregroundColor(.white)
+                            .foregroundStyle(Color.accentColor)
                     }
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                 }
@@ -124,7 +119,7 @@ struct LoginView: View {
             }
         }
         .font(.system(size: 16, weight: .regular, design: .rounded))
-        .foregroundColor(.white)
+        .foregroundStyle(.primary)
         .padding(.horizontal, 20)
         .frame(height: 52)
         .background(

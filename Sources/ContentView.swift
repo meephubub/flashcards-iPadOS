@@ -9,10 +9,8 @@ struct ContentView: View {
                 NavigationStack {
                     DecksListView()
                 }
-                .preferredColorScheme(.dark)
             } else {
                 LoginView()
-                    .preferredColorScheme(.dark)
             }
         }
         .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)

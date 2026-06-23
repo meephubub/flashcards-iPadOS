@@ -1,18 +1,19 @@
 import Foundation
 
 struct Deck: Codable, Identifiable {
-    let id: UUID
+    let id: Int
     let name: String
     let description: String?
     let cardCount: Int?
-    let lastStudied: Date?
+    /// Stored as plain text in the DB (e.g. "Never" or a date string).
+    let lastStudied: String?
     let createdAt: Date?
     let updatedAt: Date?
     let tag: String?
     let userId: UUID?
     let excludeFromSrs: Bool?
     let isPublic: Bool?
-    let shareId: String?
+    let shareId: UUID?
 
     enum CodingKeys: String, CodingKey {
         case id
