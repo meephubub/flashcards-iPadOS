@@ -79,7 +79,7 @@ struct DecksListView: View {
                             NavigationLink(destination: DeckDetailView(deck: deck)) {
                                 DeckRowView(deck: deck)
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            .buttonStyle(DeckRowButtonStyle())
                         }
                     }
                     .padding(.horizontal, 20)
@@ -162,12 +162,20 @@ struct DecksListView: View {
     }
 }
 
+// MARK: - Button style that drives the press-scale animation without blocking navigation
+
+struct DeckRowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
+    }
+}
+
 // MARK: - Deck Row
 
 struct DeckRowView: View {
     let deck: Deck
-
-    @State private var isPressed: Bool = false
 
     var body: some View {
         HStack(spacing: 16) {
@@ -202,20 +210,12 @@ struct DeckRowView: View {
         .padding(.vertical, 18)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(isPressed
-                      ? Color(.secondarySystemBackground).opacity(0.7)
-                      : Color(.secondarySystemBackground))
+                .fill(Color(.secondarySystemBackground))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(Color(.separator).opacity(0.4), lineWidth: 1)
                 )
         )
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isPressed)
-        .onLongPressGesture(minimumDuration: 0, pressing: { pressing in
-            isPressed = pressing
-            if pressing { HapticManager.selectionChanged() }
-        }, perform: {})
         .padding(.vertical, 4)
     }
 }
