@@ -9,10 +9,12 @@ struct ContentView: View {
                 NavigationStack {
                     DecksListView()
                 }
+                .background(Color(.systemBackground))
             } else {
                 LoginView()
             }
         }
+        .background(Color(.systemBackground).ignoresSafeArea())
         .animation(.easeInOut(duration: 0.3), value: authManager.isAuthenticated)
     }
 }
