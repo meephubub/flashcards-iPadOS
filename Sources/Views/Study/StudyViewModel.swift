@@ -1,5 +1,4 @@
 import Foundation
-import FSRS
 
 @Observable
 final class StudyViewModel {
@@ -118,16 +117,28 @@ final class StudyViewModel {
 
     func rateCard(isGood: Bool) {
         guard let card = currentCard else { return }
-        let rating: Rating = isGood ? .good : .again
+        let appRating: AppRating = isGood ? .good : .again
+        let libraryRating = FSRSService.libraryRating(from: appRating)
 
         isGood ? HapticManager.success() : HapticManager.warning()
 
-        // Record to Supabase in background
+        // Schedule and persist to Supabase in background
         let progress = currentProgress
         let cardId = card.id
         let uid = userId
         Task {
-            try? await FSRSService.recordReview(cardId: cardId, userId: uid, rating: rating, currentProgress: progress)
+            if let result = try? FSRSService.schedule(rating: libraryRating, currentProgress: progress) {
+                try? await CardService.upsertProgress(
+                    cardId: cardId,
+                    userId: uid,
+                    fsrsStateJSON: result.fsrsStateJSON,
+                    due: result.due,
+                    interval: result.interval,
+                    reps: result.reps,
+                    difficulty: result.difficulty,
+                    existing: progress
+                )
+            }
         }
 
         if !isGood {

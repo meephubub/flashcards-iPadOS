@@ -1,146 +1,130 @@
 import Foundation
 import FSRS
-import Supabase
 
-// MARK: - Rating mapping
+// Alias the library's Card type to avoid collision with our app's Card model.
+typealias FSRSLibCard = FSRS.Card
 
-extension Rating {
-    static var again: Rating { .again }
-    static var good: Rating { .good }
-}
+// MARK: - Schedule preview returned to the caller
 
 struct FSRSSchedule {
-    let againCard: FSRSCard
-    let goodCard: FSRSCard
     let againDue: Date
     let goodDue: Date
 }
 
+// MARK: - Service
+
 struct FSRSService {
+
+    private static let scheduler = FSRS(parameters: FSRSParameters())
 
     // MARK: - Scheduling preview (no DB write)
 
-    static func getSchedule(for cardProgress: CardProgress?) -> FSRSSchedule {
-        let fsrs = FSRS(parameters: .init())
-        let card = buildFSRSCard(from: cardProgress)
-        let now = Date()
+    static func getSchedule(for progress: CardProgress?) -> FSRSSchedule {
+        let card = buildLibCard(from: progress)
+        let now  = Date()
+        let preview = scheduler.repeat(card: card, now: now)
 
-        let againResult = fsrs.repeat(card: card, now: now)[.again]!
-        let goodResult = fsrs.repeat(card: card, now: now)[.good]!
+        let againDue = preview[.again]?.card.due ?? now
+        let goodDue  = preview[.good]?.card.due  ?? now
 
-        return FSRSSchedule(
-            againCard: againResult.card,
-            goodCard: goodResult.card,
-            againDue: againResult.card.due,
-            goodDue: goodResult.card.due
-        )
+        return FSRSSchedule(againDue: againDue, goodDue: goodDue)
     }
 
-    // MARK: - Record a review and persist to Supabase
+    // MARK: - Record a review and return the updated CardProgress fields
 
-    static func recordReview(cardId: UUID, userId: UUID, rating: Rating, currentProgress: CardProgress?) async throws {
-        let fsrs = FSRS(parameters: .init())
-        let card = buildFSRSCard(from: currentProgress)
-        let now = Date()
+    /// Returns the encoded FSRS state JSON and the new due date.
+    static func schedule(
+        rating: Rating,
+        currentProgress: CardProgress?
+    ) throws -> (fsrsStateJSON: String, due: Date, interval: Double, reps: Int, difficulty: Double) {
+        let card = buildLibCard(from: currentProgress)
+        let now  = Date()
 
-        guard let result = fsrs.repeat(card: card, now: now)[rating] else { return }
-        let updatedCard = result.card
+        let result = try scheduler.next(card: card, now: now, grade: rating)
+        let updated = result.card
 
-        // Encode updated FSRS card state to JSON
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        let stateData = try encoder.encode(FSRSCardState(from: updatedCard))
+        let stateData = try encoder.encode(FSRSCardState(from: updated))
         let stateJSON = String(data: stateData, encoding: .utf8) ?? "{}"
 
-        let iso8601 = ISO8601DateFormatter()
-        iso8601.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return (stateJSON, updated.due, updated.scheduledDays, updated.reps, updated.difficulty)
+    }
 
-        let upsertPayload: [String: String] = [
-            "card_id": cardId.uuidString,
-            "user_id": userId.uuidString,
-            "due_date": iso8601.string(from: updatedCard.due),
-            "last_reviewed": iso8601.string(from: now),
-            "fsrs_state": stateJSON,
-            "interval": String(updatedCard.scheduledDays),
-            "repetitions": String(updatedCard.reps),
-            "ease_factor": String(updatedCard.difficulty)
-        ]
+    // MARK: - Map our Rating enum to the library's Rating enum
 
-        if let existing = currentProgress {
-            try await supabase
-                .from("card_progress")
-                .update(upsertPayload)
-                .eq("id", value: existing.id.uuidString)
-                .execute()
-        } else {
-            try await supabase
-                .from("card_progress")
-                .insert(upsertPayload)
-                .execute()
+    static func libraryRating(from appRating: AppRating) -> Rating {
+        switch appRating {
+        case .again: return .again
+        case .hard:  return .hard
+        case .good:  return .good
+        case .easy:  return .easy
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Build a library Card from persisted CardProgress
 
-    private static func buildFSRSCard(from progress: CardProgress?) -> FSRSCard {
-        guard let progress = progress,
-              let stateJSON = progress.fsrsState,
-              let stateData = stateJSON.data(using: .utf8) else {
-            return FSRSCard()
+    private static func buildLibCard(from progress: CardProgress?) -> FSRSLibCard {
+        guard
+            let progress,
+            let stateJSON = progress.fsrsState,
+            let stateData = stateJSON.data(using: .utf8)
+        else {
+            return FSRSLibCard()
         }
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        if let state = try? decoder.decode(FSRSCardState.self, from: stateData) {
-            var card = FSRSCard()
-            card.due = state.due
-            card.stability = state.stability
-            card.difficulty = state.difficulty
-            card.elapsedDays = state.elapsedDays
-            card.scheduledDays = state.scheduledDays
-            card.reps = state.reps
-            card.lapses = state.lapses
-            card.state = FSRSCardState.fsrsState(from: state.state)
-            card.lastReview = state.lastReview
-            return card
+        guard let state = try? decoder.decode(FSRSCardState.self, from: stateData) else {
+            return FSRSLibCard()
         }
 
-        return FSRSCard()
+        return FSRSLibCard(
+            due:          state.due,
+            stability:    state.stability,
+            difficulty:   state.difficulty,
+            elapsedDays:  state.elapsedDays,
+            scheduledDays: state.scheduledDays,
+            reps:         state.reps,
+            lapses:       state.lapses,
+            state:        state.cardState,
+            lastReview:   state.lastReview
+        )
     }
 }
 
-// MARK: - Codable bridge for FSRSCard state
+// MARK: - Codable bridge for persisting the FSRS card state as JSON
 
 struct FSRSCardState: Codable {
-    let due: Date
-    let stability: Double
-    let difficulty: Double
-    let elapsedDays: Int
-    let scheduledDays: Int
-    let reps: Int
-    let lapses: Int
-    let state: String
-    let lastReview: Date?
+    let due:           Date
+    let stability:     Double
+    let difficulty:    Double
+    let elapsedDays:   Double
+    let scheduledDays: Double
+    let reps:          Int
+    let lapses:        Int
+    let state:         Int      // CardState raw value
+    let lastReview:    Date?
 
-    init(from card: FSRSCard) {
-        self.due = card.due
-        self.stability = card.stability
-        self.difficulty = card.difficulty
-        self.elapsedDays = card.elapsedDays
+    init(from card: FSRSLibCard) {
+        self.due           = card.due
+        self.stability     = card.stability
+        self.difficulty    = card.difficulty
+        self.elapsedDays   = card.elapsedDays
         self.scheduledDays = card.scheduledDays
-        self.reps = card.reps
-        self.lapses = card.lapses
-        self.state = card.state.rawValue
-        self.lastReview = card.lastReview
+        self.reps          = card.reps
+        self.lapses        = card.lapses
+        self.state         = card.state.rawValue
+        self.lastReview    = card.lastReview
     }
 
-    static func fsrsState(from raw: String) -> FSRS.State {
-        switch raw {
-        case "New": return .new
-        case "Learning": return .learning
-        case "Review": return .review
-        case "Relearning": return .relearning
-        default: return .new
-        }
+    var cardState: CardState {
+        CardState(rawValue: state) ?? .new
     }
+}
+
+// MARK: - App-level rating enum (decoupled from the library)
+
+enum AppRating {
+    case again, hard, good, easy
 }

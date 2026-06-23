@@ -60,4 +60,44 @@ struct CardService {
 
         return sorted
     }
+
+    // MARK: - Upsert progress after an FSRS review
+
+    static func upsertProgress(
+        cardId: UUID,
+        userId: UUID,
+        fsrsStateJSON: String,
+        due: Date,
+        interval: Double,
+        reps: Int,
+        difficulty: Double,
+        existing: CardProgress?
+    ) async throws {
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        let payload: [String: AnyJSON] = [
+            "card_id":     .string(cardId.uuidString),
+            "user_id":     .string(userId.uuidString),
+            "due_date":    .string(iso.string(from: due)),
+            "last_reviewed": .string(iso.string(from: Date())),
+            "fsrs_state":  .string(fsrsStateJSON),
+            "interval":    .double(interval),
+            "repetitions": .integer(reps),
+            "ease_factor": .double(difficulty)
+        ]
+
+        if let existing {
+            try await supabase
+                .from("card_progress")
+                .update(payload)
+                .eq("id", value: existing.id.uuidString)
+                .execute()
+        } else {
+            try await supabase
+                .from("card_progress")
+                .insert(payload)
+                .execute()
+        }
+    }
 }
