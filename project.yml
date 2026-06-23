@@ -9,9 +9,6 @@ packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift.git
     from: "2.0.0"
-  swift-fsrs:
-    url: https://github.com/open-spaced-repetition/swift-fsrs
-    from: "5.0.0"
 
 targets:
   FlashcardsiPadOS:
@@ -22,8 +19,6 @@ targets:
     dependencies:
       - package: Supabase
         product: Supabase
-      - package: swift-fsrs
-        product: FSRS
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.flashcards.ipados

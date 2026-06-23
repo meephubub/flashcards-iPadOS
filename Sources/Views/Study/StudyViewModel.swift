@@ -63,7 +63,7 @@ final class StudyViewModel {
 
     // MARK: - FSRS schedule for current card
 
-    private(set) var schedule: FSRSSchedule?
+    private(set) var schedule: FSRSPreview?
 
     var nextDueForAgain: String {
         schedule?.againDue.relativeStudyString() ?? "—"
@@ -117,8 +117,7 @@ final class StudyViewModel {
 
     func rateCard(isGood: Bool) {
         guard let card = currentCard else { return }
-        let appRating: AppRating = isGood ? .good : .again
-        let libraryRating = FSRSService.libraryRating(from: appRating)
+        let rating: AppRating = isGood ? .good : .again
 
         isGood ? HapticManager.success() : HapticManager.warning()
 
@@ -127,7 +126,7 @@ final class StudyViewModel {
         let cardId = card.id
         let uid = userId
         Task {
-            if let result = try? FSRSService.schedule(rating: libraryRating, currentProgress: progress) {
+            if let result = try? FSRSService.schedule(rating: rating, currentProgress: progress) {
                 try? await CardService.upsertProgress(
                     cardId: cardId,
                     userId: uid,
@@ -204,7 +203,7 @@ final class StudyViewModel {
     }
 
     private func computeSchedule() {
-        schedule = FSRSService.getSchedule(for: currentProgress)
+        schedule = FSRSService.preview(currentProgress: currentProgress)
     }
 
     // MARK: - Timer
