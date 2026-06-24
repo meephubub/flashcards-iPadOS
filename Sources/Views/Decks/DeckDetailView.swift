@@ -76,12 +76,12 @@ struct DeckDetailView: View {
                         Text(dueCount > 0 ? "Study \(dueCount) Due Cards" : "Study All Cards")
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color(.systemBackground))
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .fill(Color.accentColor)
+                            .fill(Color(.label))
                     )
                 }
                 .padding(.horizontal, 20)

@@ -66,18 +66,18 @@ struct LoginView: View {
                     ZStack {
                         if authManager.isLoading {
                             ProgressView()
-                                .tint(.white)
+                                .tint(Color(.systemBackground))
                         } else {
                             Text(isSignUp ? "Create Account" : "Sign In")
                                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Color(.systemBackground))
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .fill(Color.accentColor)
+                            .fill(Color(.label))
                     )
                 }
                 .disabled(authManager.isLoading || email.isEmpty || password.isEmpty)
@@ -94,7 +94,7 @@ struct LoginView: View {
                         Text(isSignUp ? "Already have an account?" : "Don't have an account?")
                             .foregroundStyle(secondaryText)
                         Text(isSignUp ? "Sign In" : "Sign Up")
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(.primary)
                     }
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                 }
