@@ -8,6 +8,7 @@ struct DeckDetailView: View {
     @State private var dueCount: Int = 0
     @State private var isLoading: Bool = false
     @State private var navigateToStudy: Bool = false
+    @State private var studyUserId: UUID?
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -68,6 +69,8 @@ struct DeckDetailView: View {
 
                 Button {
                     HapticManager.mediumImpact()
+                    guard let userId = authManager.userId else { return }
+                    studyUserId = userId
                     navigateToStudy = true
                 } label: {
                     HStack(spacing: 8) {
@@ -92,7 +95,7 @@ struct DeckDetailView: View {
         .navigationTitle(deck.name)
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(isPresented: $navigateToStudy) {
-            if let userId = authManager.userId {
+            if let userId = studyUserId {
                 StudyView(deck: deck, userId: userId)
             }
         }

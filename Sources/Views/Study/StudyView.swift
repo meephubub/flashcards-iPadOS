@@ -1,4 +1,5 @@
 import SwiftUI
+import MarkdownUI
 
 struct StudyView: View {
     @Environment(\.dismiss) private var dismiss
@@ -111,8 +112,12 @@ struct StudyView: View {
     @ViewBuilder
     private func cardContent(card: Card) -> some View {
         VStack(spacing: 0) {
-            Text(card.front)
-                .font(.system(size: 28, weight: .semibold, design: .rounded))
+            Markdown(card.front)
+                .markdownTheme(\.basic) { theme in
+                    theme.font = .system(size: 28, weight: .semibold, design: .rounded)
+                    theme.heading = .init(font: .system(size: 32, weight: .bold, design: .rounded))
+                    theme.code = .init(font: .system(size: 24, weight: .regular, design: .monospaced))
+                }
                 .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
@@ -126,8 +131,12 @@ struct StudyView: View {
                     .padding(.vertical, 28)
                     .transition(.opacity)
 
-                Text(card.back)
-                    .font(.system(size: 22, weight: .regular, design: .rounded))
+                Markdown(card.back)
+                    .markdownTheme(\.basic) { theme in
+                        theme.font = .system(size: 22, weight: .regular, design: .rounded)
+                        theme.heading = .init(font: .system(size: 26, weight: .semibold, design: .rounded))
+                        theme.code = .init(font: .system(size: 20, weight: .regular, design: .monospaced))
+                    }
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)

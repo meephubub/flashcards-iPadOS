@@ -19,6 +19,8 @@ targets:
     dependencies:
       - package: Supabase
         product: Supabase
+      - package: MarkdownUI
+        product: MarkdownUI
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.flashcards.ipados

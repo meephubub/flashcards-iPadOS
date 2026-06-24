@@ -16,10 +16,12 @@ struct DecksListView: View {
                     .tag(deck.id)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
             }
         }
         .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .background(Color(.systemGroupedBackground))
         .searchable(text: $searchText, placement: .sidebar, prompt: "Search decks")
         .onChange(of: searchText) { _, new in debounceSearch(query: new) }
         .navigationTitle("Decks")
@@ -40,6 +42,7 @@ struct DecksListView: View {
         .overlay {
             if isLoading && decks.isEmpty {
                 ProgressView()
+                    .tint(.secondary)
             } else if let error = errorMessage {
                 errorState(error)
             } else if decks.isEmpty {
@@ -58,24 +61,27 @@ struct DecksListView: View {
 
     @ViewBuilder
     private var emptyState: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             Image(systemName: searchText.isEmpty ? "rectangle.stack" : "magnifyingglass")
-                .font(.system(size: 36, weight: .thin))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 48, weight: .thin))
+                .foregroundStyle(Color(.tertiaryLabel))
             Text(searchText.isEmpty ? "No decks yet" : "No results for \"\(searchText)\"")
-                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .font(.system(size: 16, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder
     private func errorState(_ message: String) -> some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 36, weight: .thin))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 48, weight: .thin))
+                .foregroundStyle(Color(.tertiaryLabel))
             Text(message)
-                .font(.system(size: 14, weight: .regular, design: .rounded))
+                .font(.system(size: 15, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
@@ -83,9 +89,11 @@ struct DecksListView: View {
                 errorMessage = nil
                 Task { await loadDecks() }
             }
-            .font(.system(size: 14, weight: .semibold, design: .rounded))
+            .font(.system(size: 15, weight: .semibold, design: .rounded))
             .foregroundStyle(.primary)
+            .padding(.top, 8)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Data loading
@@ -123,23 +131,23 @@ struct DeckRowView: View {
     let deck: Deck
 
     var body: some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(deck.name)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
 
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     if let count = deck.cardCount {
                         Text("\(count) cards")
-                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                            .font(.system(size: 13, weight: .regular, design: .rounded))
                             .foregroundStyle(.secondary)
                     }
 
                     if let last = deck.lastStudied, last != "Never" {
-                        Text(last)
-                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                        Text("• \(last)")
+                            .font(.system(size: 13, weight: .regular, design: .rounded))
                             .foregroundStyle(Color(.tertiaryLabel))
                     }
                 }
@@ -147,11 +155,15 @@ struct DeckRowView: View {
 
             Spacer()
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color(.separator).opacity(0.3), lineWidth: 0.5)
+                )
         )
     }
 }

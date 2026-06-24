@@ -3,33 +3,35 @@ import SwiftUI
 struct ContentView: View {
 
     @State private var authManager = AuthManager()
+    @State private var selectedTab: Tab = .decks
 
     @State private var decks: [Deck] = []
     @State private var selectedDeckID: Int? = nil
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
 
+    enum Tab {
+        case decks
+        case calendar
+    }
+
     var body: some View {
         Group {
             if authManager.isAuthenticated {
-
-                NavigationSplitView(columnVisibility: $columnVisibility) {
-
-                    DecksListView(
-                        selectedDeckID: $selectedDeckID
+                TabView(selection: $selectedTab) {
+                    DecksTabView(
+                        decks: $decks,
+                        selectedDeckID: $selectedDeckID,
+                        columnVisibility: $columnVisibility
                     )
+                    .tag(Tab.decks)
 
-                } detail: {
-
-                    if let deckID = selectedDeckID,
-                       let deck = decks.first(where: { $0.id == deckID }) {
-                        DeckDetailView(deck: deck)
-                    } else {
-                        emptyDetail
-                    }
+                    CalendarView()
+                        .tag(Tab.calendar)
                 }
-                .navigationSplitViewStyle(.balanced)
                 .task {
                     await loadDecks()
+                    // Request notification permission
+                    _ = await NotificationManager.shared.requestAuthorization()
                 }
 
             } else {
@@ -48,6 +50,31 @@ struct ContentView: View {
         } catch {
             print("Failed to load decks:", error)
         }
+    }
+}
+
+struct DecksTabView: View {
+    @Binding var decks: [Deck]
+    @Binding var selectedDeckID: Int?
+    @Binding var columnVisibility: NavigationSplitViewVisibility
+
+    var body: some View {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+
+            DecksListView(
+                selectedDeckID: $selectedDeckID
+            )
+
+        } detail: {
+
+            if let deckID = selectedDeckID,
+               let deck = decks.first(where: { $0.id == deckID }) {
+                DeckDetailView(deck: deck)
+            } else {
+                emptyDetail
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
     }
 
     private var emptyDetail: some View {
