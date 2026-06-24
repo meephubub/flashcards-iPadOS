@@ -1,6 +1,4 @@
 import SwiftUI
-import Down
-import UIKit
 
 struct StudyView: View {
     @Environment(\.dismiss) private var dismiss
@@ -113,7 +111,8 @@ struct StudyView: View {
     @ViewBuilder
     private func cardContent(card: Card) -> some View {
         VStack(spacing: 0) {
-            MarkdownView(markdown: card.front, fontSize: 28, isBold: true)
+            Text(card.front)
+                .font(.system(size: 28, weight: .semibold, design: .rounded))
                 .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
@@ -127,7 +126,8 @@ struct StudyView: View {
                     .padding(.vertical, 28)
                     .transition(.opacity)
 
-                MarkdownView(markdown: card.back, fontSize: 22, isBold: false)
+                Text(card.back)
+                    .font(.system(size: 22, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
@@ -314,46 +314,6 @@ struct StudyView: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 viewModel.showAnswer()
             }
-        }
-    }
-}
-
-// MARK: - Markdown View Wrapper
-
-struct MarkdownView: UIViewRepresentable {
-    let markdown: String
-    let fontSize: CGFloat
-    let isBold: Bool
-
-    func makeUIView(context: Context) -> DownView {
-        let downView = DownView(frame: .zero)
-        downView.backgroundColor = .clear
-        return downView
-    }
-
-    func updateUIView(_ uiView: DownView, context: Context) {
-        let markdownString = Down(markdownString: markdown)
-        let styling = DownStyler(
-            baseFontSize: fontSize,
-            baseFontColor: .label,
-            codeFontName: "Menlo",
-            quoteFontName: "Georgia",
-            strongFontName: isBold ? ".systemRounded" : nil
-        )
-        uiView.downStyler = styling
-
-        do {
-            let attributedString = try markdownString.toAttributedString(styler: styling)
-            uiView.attributedString = attributedString
-        } catch {
-            // Fallback to plain text if markdown parsing fails
-            let plainString = NSAttributedString(
-                string: markdown,
-                attributes: [
-                    .font: UIFont.systemFont(ofSize: fontSize, weight: isBold ? .bold : .regular)
-                ]
-            )
-            uiView.attributedString = plainString
         }
     }
 }

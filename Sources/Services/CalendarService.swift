@@ -23,7 +23,7 @@ struct CalendarService {
     private static let table = "calendar_events"
 
     static func fetchEvents(for userId: UUID, from startDate: Date, to endDate: Date) async throws -> [CalendarEvent] {
-        let response = try await supabase
+        let events: [CalendarEvent] = try await supabase
             .from(table)
             .select()
             .gte("starts_at", value: startDate)
@@ -31,8 +31,7 @@ struct CalendarService {
             .eq("user_id", value: userId)
             .order("starts_at", ascending: true)
             .execute()
-
-        let events: [CalendarEvent] = try response.value
+            .value
         return events
     }
 
@@ -41,7 +40,7 @@ struct CalendarService {
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
 
-        let response = try await supabase
+        let events: [CalendarEvent] = try await supabase
             .from(table)
             .select()
             .gte("starts_at", value: startOfDay)
@@ -49,8 +48,7 @@ struct CalendarService {
             .eq("user_id", value: userId)
             .order("starts_at", ascending: true)
             .execute()
-
-        let events: [CalendarEvent] = try response.value
+            .value
         return events
     }
 
@@ -62,26 +60,25 @@ struct CalendarService {
         endsAt: Date?,
         allDay: Bool
     ) async throws -> CalendarEvent {
-        let event = CalendarEvent(
-            id: UUID(),
-            userId: userId,
-            title: title,
-            description: description,
-            startsAt: startsAt,
-            endsAt: endsAt,
-            allDay: allDay,
-            createdAt: Date(),
-            updatedAt: Date()
-        )
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
-        let response = try await supabase
+        let payload: [String: AnyJSON] = [
+            "user_id": .string(userId.uuidString),
+            "title": .string(title),
+            "description": description != nil ? .string(description!) : .null,
+            "starts_at": .string(iso.string(from: startsAt)),
+            "ends_at": endsAt != nil ? .string(iso.string(from: endsAt!)) : .null,
+            "all_day": .boolean(allDay)
+        ]
+
+        let createdEvent: CalendarEvent = try await supabase
             .from(table)
-            .insert(event)
+            .insert(payload)
             .select()
             .single()
             .execute()
-
-        let createdEvent: CalendarEvent = try response.value
+            .value
 
         // Schedule notification
         NotificationManager.shared.scheduleNotification(for: createdEvent)
@@ -97,24 +94,26 @@ struct CalendarService {
         endsAt: Date?,
         allDay: Bool?
     ) async throws -> CalendarEvent {
-        var updates: [String: Any] = [:]
-        updates["updated_at"] = Date()
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
-        if let title = title { updates["title"] = title }
-        if let description = description { updates["description"] = description }
-        if let startsAt = startsAt { updates["starts_at"] = startsAt }
-        if let endsAt = endsAt { updates["ends_at"] = endsAt }
-        if let allDay = allDay { updates["all_day"] = allDay }
+        var updates: [String: AnyJSON] = [:]
+        updates["updated_at"] = .string(iso.string(from: Date()))
 
-        let response = try await supabase
+        if let title = title { updates["title"] = .string(title) }
+        if let description = description { updates["description"] = .string(description) }
+        if let startsAt = startsAt { updates["starts_at"] = .string(iso.string(from: startsAt)) }
+        if let endsAt = endsAt { updates["ends_at"] = .string(iso.string(from: endsAt)) }
+        if let allDay = allDay { updates["all_day"] = .boolean(allDay) }
+
+        let updatedEvent: CalendarEvent = try await supabase
             .from(table)
             .update(updates)
             .eq("id", value: id)
             .select()
             .single()
             .execute()
-
-        let updatedEvent: CalendarEvent = try response.value
+            .value
 
         // Reschedule notification
         NotificationManager.shared.scheduleNotification(for: updatedEvent)
