@@ -253,12 +253,12 @@ struct StudyView: View {
                 } label: {
                     Text("Good")
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color(.systemBackground))
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .background(
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                .fill(Color.accentColor)
+                                .fill(Color(.label))
                         )
                 }
             }
@@ -272,7 +272,7 @@ struct StudyView: View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.circle")
                 .font(.system(size: 56, weight: .thin))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(Color(.secondaryLabel))
 
             Text("Session Complete")
                 .font(.system(size: 24, weight: .bold, design: .rounded))
