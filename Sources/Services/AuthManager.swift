@@ -3,6 +3,7 @@ import Supabase
 
 @Observable
 final class AuthManager {
+
     var currentUser: User?
     var isLoading: Bool = false
     var errorMessage: String?
@@ -52,6 +53,7 @@ final class AuthManager {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+
         do {
             let session = try await supabase.auth.signIn(email: email, password: password)
             currentUser = session.user
@@ -64,6 +66,7 @@ final class AuthManager {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+
         do {
             let response = try await supabase.auth.signUp(email: email, password: password)
             currentUser = response.user
@@ -76,6 +79,7 @@ final class AuthManager {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+
         do {
             try await supabase.auth.signOut()
             currentUser = nil
