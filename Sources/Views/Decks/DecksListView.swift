@@ -11,7 +11,7 @@ struct DecksListView: View {
     @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
-        List(selection: $selectedDeck) {
+        List(selection: $selectedDeckID) {
             ForEach(decks) { deck in
                 DeckRowView(deck: deck)
                     .tag(deck.id)

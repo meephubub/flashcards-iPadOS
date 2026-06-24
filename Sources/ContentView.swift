@@ -10,9 +10,9 @@ struct ContentView: View {
         Group {
             if authManager.isAuthenticated {
                 NavigationSplitView(columnVisibility: $columnVisibility) {
-                    DecksListView(selectedDeck: $selectedDeck)
+                    DecksListView(selectedDeck: $selectedDeckID)
                 } detail: {
-                    if let deck = selectedDeck {
+                    if let deck = selectedDeckID {
                         DeckDetailView(deck: deck)
                     } else {
                         emptyDetail

@@ -41,7 +41,7 @@ struct DeckService {
             .from("decks")
             .select()
             .eq("user_id", value: userId)
-            .ilike("name", value: "%\(query)%")
+            .ilike("name", pattern: "%\(query)%")
             .order("created_at", ascending: false)
             .execute()
         return try decoder.decode([Deck].self, from: response.data)
