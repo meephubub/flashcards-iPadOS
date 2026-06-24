@@ -3,7 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(AuthManager.self) private var authManager
 
-    @State private var selectedDeck: Deck? = nil
+    @State private var selectedDeckID: Int? = nil
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
 
     var body: some View {

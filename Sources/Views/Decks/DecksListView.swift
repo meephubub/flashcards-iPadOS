@@ -14,7 +14,7 @@ struct DecksListView: View {
         List(selection: $selectedDeck) {
             ForEach(decks) { deck in
                 DeckRowView(deck: deck)
-                    .tag(deck)
+                    .tag(deck.id)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
