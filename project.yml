@@ -9,6 +9,9 @@ packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift.git
     from: "2.0.0"
+  Down:
+    url: https://github.com/johnxnguyen/Down.git
+    from: "0.11.0"
 
 targets:
   FlashcardsiPadOS:
@@ -19,8 +22,8 @@ targets:
     dependencies:
       - package: Supabase
         product: Supabase
-      - package: MarkdownUI
-        product: MarkdownUI
+      - package: Down
+        product: Down
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.flashcards.ipados
