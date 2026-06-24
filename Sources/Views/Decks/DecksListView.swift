@@ -3,7 +3,7 @@ import SwiftUI
 struct DecksListView: View {
     @Environment(AuthManager.self) private var authManager
     @Binding var selectedDeckID: Int?
-
+    let decks: [Deck]
     @State private var decks: [Deck] = []
     @State private var searchText: String = ""
     @State private var isLoading: Bool = false
