@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
 
-    @StateObject private var authManager = AuthManager()
+    @State private var authManager = AuthManager()
 
     @State private var decks: [Deck] = []
     @State private var selectedDeckID: Int? = nil
