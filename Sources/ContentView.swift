@@ -15,7 +15,6 @@ struct ContentView: View {
                 NavigationSplitView(columnVisibility: $columnVisibility) {
 
                     DecksListView(
-                        decks: decks,
                         selectedDeckID: $selectedDeckID
                     )
 
