@@ -2,7 +2,7 @@ import SwiftUI
 
 struct DecksListView: View {
     @Environment(AuthManager.self) private var authManager
-    @Binding var selectedDeck: Deck?
+    @Binding var selectedDeckID: Int?
 
     @State private var decks: [Deck] = []
     @State private var searchText: String = ""

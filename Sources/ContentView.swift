@@ -5,14 +5,18 @@ struct ContentView: View {
 
     @State private var selectedDeckID: Int? = nil
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
-
+    let decks: [Deck]
     var body: some View {
         Group {
             if authManager.isAuthenticated {
                 NavigationSplitView(columnVisibility: $columnVisibility) {
-                    DecksListView(selectedDeck: $selectedDeckID)
+                    DecksListView(
+                        decks: decks,
+                        selectedDeckID: $selectedDeckID
+                    )
                 } detail: {
-                    if let deck = selectedDeckID {
+                    if let deckID = selectedDeckID,
+                       let deck = decks.first(where: { $0.id == deckID }) {
                         DeckDetailView(deck: deck)
                     } else {
                         emptyDetail
