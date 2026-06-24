@@ -69,7 +69,7 @@ struct CalendarService {
             "description": description != nil ? .string(description!) : .null,
             "starts_at": .string(iso.string(from: startsAt)),
             "ends_at": endsAt != nil ? .string(iso.string(from: endsAt!)) : .null,
-            "all_day": allDay
+            "all_day": .integer(allDay ? 1 : 0)
         ]
 
         let createdEvent: CalendarEvent = try await supabase
@@ -104,7 +104,7 @@ struct CalendarService {
         if let description = description { updates["description"] = .string(description) }
         if let startsAt = startsAt { updates["starts_at"] = .string(iso.string(from: startsAt)) }
         if let endsAt = endsAt { updates["ends_at"] = .string(iso.string(from: endsAt)) }
-        if let allDay = allDay { updates["all_day"] = allDay }
+        if let allDay = allDay { updates["all_day"] = .integer(allDay ? 1 : 0) }
 
         let updatedEvent: CalendarEvent = try await supabase
             .from(table)
