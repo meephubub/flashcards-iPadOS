@@ -69,9 +69,7 @@ struct DeckDetailView: View {
 
                 Button {
                     HapticManager.mediumImpact()
-                    guard let userId = authManager.userId else { return }
-                    studyUserId = userId
-                    navigateToStudy = true
+                    showingStudyView = true
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "play.fill")
@@ -94,8 +92,8 @@ struct DeckDetailView: View {
         }
         .navigationTitle(deck.name)
         .navigationBarTitleDisplayMode(.large)
-        .navigationDestination(isPresented: $navigateToStudy) {
-            if let userId = studyUserId {
+        .sheet(isPresented: $showingStudyView) {
+            if let userId = authManager.userId {
                 StudyView(deck: deck, userId: userId)
             }
         }

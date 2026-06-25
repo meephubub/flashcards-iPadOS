@@ -16,7 +16,7 @@ struct DecksListView: View {
                     .tag(deck.id)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             }
         }
         .listStyle(.sidebar)
@@ -33,8 +33,9 @@ struct DecksListView: View {
                     Task { await authManager.signOut() }
                 } label: {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.secondary)
+                        .frame(width: 32, height: 32)
                 }
                 .accessibilityLabel("Sign Out")
             }
@@ -131,23 +132,23 @@ struct DeckRowView: View {
     let deck: Deck
 
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(deck.name)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
 
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     if let count = deck.cardCount {
                         Text("\(count) cards")
-                            .font(.system(size: 13, weight: .regular, design: .rounded))
+                            .font(.system(size: 14, weight: .regular, design: .rounded))
                             .foregroundStyle(.secondary)
                     }
 
                     if let last = deck.lastStudied, last != "Never" {
                         Text("• \(last)")
-                            .font(.system(size: 13, weight: .regular, design: .rounded))
+                            .font(.system(size: 14, weight: .regular, design: .rounded))
                             .foregroundStyle(Color(.tertiaryLabel))
                     }
                 }
@@ -155,14 +156,14 @@ struct DeckRowView: View {
 
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 18)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color(.separator).opacity(0.3), lineWidth: 0.5)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color(.separator).opacity(0.2), lineWidth: 0.5)
                 )
         )
     }
