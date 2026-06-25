@@ -13,8 +13,8 @@ enum DS {
     static let ghost       = Color(hex: "#F7F6F3")   // Warm off-white background
     static let surface     = Color(hex: "#FFFFFF")
     static let subtext     = Color(hex: "#9A9898")
-    static let accent      = Color(hex: "#C8A97A")   // Warm amber — event dot / selection ring
-    static let accentSoft  = Color(hex: "#C8A97A").opacity(0.15)
+    static let accent      = Color(hex: "#000000")   // Warm amber — event dot / selection ring
+    static let accentSoft  = Color(hex: "#000000").opacity(0.15)
 
     // Motion
     static let springSnappy    = Animation.spring(response: 0.32, dampingFraction: 0.72)
