@@ -6,6 +6,7 @@ struct StudyView: View {
 
     @State private var viewModel: StudyViewModel
     @State private var isExpanded: Bool = false
+    @State private var isFullscreen: Bool = false
 
     init(deck: Deck, userId: UUID) {
         _viewModel = State(initialValue: StudyViewModel(deck: deck, userId: userId))
@@ -34,7 +35,12 @@ struct StudyView: View {
                 finishedView
             }
         }
-        .navigationBarHidden(true)
+        .navigationBarHidden(isFullscreen)
+        .fullScreenCover(isPresented: $isFullscreen) {
+            if isFullscreen {
+                fullscreenStudyView
+            }
+        }
         .task { await viewModel.load() }
         .onDisappear { viewModel.cancelTimer() }
         .onKeyPress(.space) {
@@ -90,10 +96,10 @@ struct StudyView: View {
             HStack(spacing: 16) {
                 Button {
                     withAnimation(DS.expand) {
-                        isExpanded.toggle()
+                        isFullscreen.toggle()
                     }
                 } label: {
-                    Image(systemName: isExpanded ? "minus" : "plus")
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(DS.subtext)
                         .frame(width: 28, height: 28)
@@ -119,25 +125,24 @@ struct StudyView: View {
 
     @ViewBuilder
     private func cardContent(card: Card) -> some View {
-        VStack(spacing: isExpanded ? 32 : 24) {
+        VStack(spacing: 24) {
             Text(card.front)
-                .font(.system(size: isExpanded ? 36 : 30, weight: .medium, design: .rounded))
+                .font(.system(size: 30, weight: .medium, design: .rounded))
                 .foregroundStyle(DS.ink)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, isExpanded ? 80 : 60)
+                .padding(.horizontal, 60)
                 .fixedSize(horizontal: false, vertical: true)
 
             if viewModel.isShowingAnswer {
                 Text(card.back)
-                    .font(.system(size: isExpanded ? 28 : 24, weight: .regular, design: .rounded))
+                    .font(.system(size: 24, weight: .regular, design: .rounded))
                     .foregroundStyle(DS.inkLight)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, isExpanded ? 80 : 60)
+                    .padding(.horizontal, 60)
                     .fixedSize(horizontal: false, vertical: true)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .animation(DS.expand, value: isExpanded)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.isShowingAnswer)
     }
 
@@ -277,6 +282,156 @@ struct StudyView: View {
         } else {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 viewModel.showAnswer()
+            }
+        }
+    }
+
+    // MARK: - Fullscreen view
+
+    private var fullscreenStudyView: some View {
+        ZStack {
+            DS.surface.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Top bar with close button
+                HStack {
+                    Button {
+                        withAnimation(DS.expand) {
+                            isFullscreen = false
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(DS.subtext)
+                            .frame(width: 32, height: 32)
+                            .background(
+                                Circle()
+                                    .fill(DS.ghost)
+                            )
+                    }
+
+                    Spacer()
+
+                    Text(viewModel.deck.name)
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundStyle(DS.subtext)
+
+                    Spacer()
+
+                    Text("\(viewModel.cardsRemaining)")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(DS.ink)
+                }
+                .padding(.horizontal, 32)
+                .padding(.top, 20)
+                .padding(.bottom, 32)
+
+                Spacer()
+
+                if let card = viewModel.currentCard {
+                    VStack(spacing: 32) {
+                        Text(card.front)
+                            .font(.system(size: 42, weight: .medium, design: .rounded))
+                            .foregroundStyle(DS.ink)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 80)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if viewModel.isShowingAnswer {
+                            Text(card.back)
+                                .font(.system(size: 32, weight: .regular, design: .rounded))
+                                .foregroundStyle(DS.inkLight)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 80)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
+                    .id(card.id)
+                }
+
+                Spacer()
+
+                // Bottom controls
+                VStack(spacing: 20) {
+                    if !viewModel.isShowingAnswer {
+                        Button {
+                            withAnimation(DS.springGentle) {
+                                viewModel.showAnswer()
+                            }
+                        } label: {
+                            Text("Show Answer")
+                                .font(.system(size: 17, weight: .medium, design: .rounded))
+                                .foregroundStyle(DS.ink)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                        .fill(DS.ghost)
+                                )
+                        }
+                    } else {
+                        HStack(spacing: 12) {
+                            Button {
+                                withAnimation(DS.springGentle) {
+                                    viewModel.rateCard(isGood: false)
+                                }
+                            } label: {
+                                VStack(spacing: 4) {
+                                    Text("Again")
+                                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                                        .foregroundStyle(DS.ink)
+                                    Text(viewModel.nextDueForAgain)
+                                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                                        .foregroundStyle(DS.subtext)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                        .fill(DS.ghost)
+                                )
+                            }
+
+                            Button {
+                                withAnimation(DS.springGentle) {
+                                    viewModel.rateCard(isGood: true)
+                                }
+                            } label: {
+                                VStack(spacing: 4) {
+                                    Text("Good")
+                                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                                        .foregroundStyle(DS.surface)
+                                    Text(viewModel.nextDueForGood)
+                                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                                        .foregroundStyle(DS.surface.opacity(0.7))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                        .fill(DS.accent)
+                                )
+                            }
+                        }
+                    }
+
+                    Button {
+                        HapticManager.lightImpact()
+                        withAnimation(DS.expand) {
+                            isFullscreen = false
+                        }
+                    } label: {
+                        Text("Exit Fullscreen")
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundStyle(DS.subtext)
+                    }
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 40)
             }
         }
     }

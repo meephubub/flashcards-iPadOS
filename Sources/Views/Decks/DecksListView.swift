@@ -16,16 +16,16 @@ struct DecksListView: View {
                     .tag(deck.id)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
             }
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
-        .background(Color(.systemGroupedBackground))
-        .searchable(text: $searchText, placement: .sidebar, prompt: "Search decks")
+        .background(DS.surface)
+        .searchable(text: $searchText, placement: .sidebar, prompt: "Search")
         .onChange(of: searchText) { _, new in debounceSearch(query: new) }
-        .navigationTitle("Decks")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -33,9 +33,8 @@ struct DecksListView: View {
                     Task { await authManager.signOut() }
                 } label: {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 32, height: 32)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(DS.subtext)
                 }
                 .accessibilityLabel("Sign Out")
             }
@@ -43,7 +42,7 @@ struct DecksListView: View {
         .overlay {
             if isLoading && decks.isEmpty {
                 ProgressView()
-                    .tint(.secondary)
+                    .tint(DS.ink)
             } else if let error = errorMessage {
                 errorState(error)
             } else if decks.isEmpty {
@@ -62,37 +61,33 @@ struct DecksListView: View {
 
     @ViewBuilder
     private var emptyState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             Image(systemName: searchText.isEmpty ? "rectangle.stack" : "magnifyingglass")
-                .font(.system(size: 48, weight: .thin))
-                .foregroundStyle(DS.subtext.opacity(0.5))
-            Text(searchText.isEmpty ? "No decks yet" : "No results for \"\(searchText)\"")
-                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .font(.system(size: 40, weight: .thin))
+                .foregroundStyle(DS.subtext.opacity(0.4))
+            Text(searchText.isEmpty ? "No decks" : "No results")
+                .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(DS.subtext)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder
     private func errorState(_ message: String) -> some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48, weight: .thin))
-                .foregroundStyle(DS.subtext.opacity(0.5))
-            Text(message)
-                .font(.system(size: 15, weight: .regular, design: .rounded))
+                .font(.system(size: 40, weight: .thin))
+                .foregroundStyle(DS.subtext.opacity(0.4))
+            Text("Error")
+                .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(DS.subtext)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
             Button("Retry") {
                 errorMessage = nil
                 Task { await loadDecks() }
             }
-            .font(.system(size: 15, weight: .semibold, design: .rounded))
+            .font(.system(size: 14, weight: .medium, design: .rounded))
             .foregroundStyle(DS.ink)
-            .padding(.top, 8)
+            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -132,39 +127,27 @@ struct DeckRowView: View {
     let deck: Deck
 
     var body: some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(deck.name)
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .font(.system(size: 15, weight: .medium, design: .rounded))
                     .foregroundStyle(DS.ink)
                     .lineLimit(1)
 
-                HStack(spacing: 10) {
-                    if let count = deck.cardCount {
-                        Text("\(count) cards")
-                            .font(.system(size: 14, weight: .regular, design: .rounded))
-                            .foregroundStyle(DS.subtext)
-                    }
-
-                    if let last = deck.lastStudied, last != "Never" {
-                        Text("• \(last)")
-                            .font(.system(size: 14, weight: .regular, design: .rounded))
-                            .foregroundStyle(DS.subtext.opacity(0.7))
-                    }
+                if let count = deck.cardCount {
+                    Text("\(count) cards")
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(DS.subtext)
                 }
             }
 
             Spacer()
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 18)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(DS.ghost)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(DS.inkFaint, lineWidth: 0.5)
-                )
         )
     }
 }
