@@ -6,7 +6,6 @@ struct StudyView: View {
 
     @State private var viewModel: StudyViewModel
     @State private var isExpanded: Bool = false
-    @State private var isFullscreen: Bool = false
 
     init(deck: Deck, userId: UUID) {
         _viewModel = State(initialValue: StudyViewModel(deck: deck, userId: userId))
@@ -125,24 +124,25 @@ struct StudyView: View {
 
     @ViewBuilder
     private func cardContent(card: Card) -> some View {
-        VStack(spacing: 24) {
+        VStack(spacing: isExpanded ? 32 : 24) {
             Text(card.front)
-                .font(.system(size: 30, weight: .medium, design: .rounded))
+                .font(.system(size: isExpanded ? 42 : 30, weight: .medium, design: .rounded))
                 .foregroundStyle(DS.ink)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 60)
+                .padding(.horizontal, isExpanded ? 80 : 40)
                 .fixedSize(horizontal: false, vertical: true)
 
             if viewModel.isShowingAnswer {
                 Text(card.back)
-                    .font(.system(size: 24, weight: .regular, design: .rounded))
+                    .font(.system(size: isExpanded ? 32 : 24, weight: .regular, design: .rounded))
                     .foregroundStyle(DS.inkLight)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 60)
+                    .padding(.horizontal, isExpanded ? 80 : 40)
                     .fixedSize(horizontal: false, vertical: true)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .animation(DS.expand, value: isExpanded)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.isShowingAnswer)
     }
 
@@ -282,123 +282,6 @@ struct StudyView: View {
         } else {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 viewModel.showAnswer()
-            }
-        }
-    }
-
-    // MARK: - Fullscreen content
-
-    private var fullscreenStudyContent: some View {
-        ZStack {
-            DS.surface.ignoresSafeArea(.all)
-
-            VStack(spacing: 0) {
-                // Minimal top bar
-                HStack {
-                    Button {
-                        withAnimation(DS.expand) {
-                            isFullscreen = false
-                        }
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(DS.subtext)
-                            .frame(width: 36, height: 36)
-                            .background(
-                                Circle()
-                                    .fill(DS.ghost)
-                            )
-                    }
-
-                    Spacer()
-
-                    Text("\(viewModel.cardsRemaining)")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundStyle(DS.ink)
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 16)
-                .padding(.bottom, 24)
-
-                Spacer()
-
-                if let card = viewModel.currentCard {
-                    VStack(spacing: 40) {
-                        Text(card.front)
-                            .font(.system(size: 48, weight: .medium, design: .rounded))
-                            .foregroundStyle(DS.ink)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 60)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if viewModel.isShowingAnswer {
-                            Text(card.back)
-                                .font(.system(size: 36, weight: .regular, design: .rounded))
-                                .foregroundStyle(DS.inkLight)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 60)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .leading).combined(with: .opacity)
-                    ))
-                    .id(card.id)
-                }
-
-                Spacer()
-
-                // Minimal bottom controls
-                VStack(spacing: 16) {
-                    if !viewModel.isShowingAnswer {
-                        Button {
-                            withAnimation(DS.springGentle) {
-                                viewModel.showAnswer()
-                            }
-                        } label: {
-                            Text("Tap to reveal")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundStyle(DS.subtext)
-                        }
-                    } else {
-                        HStack(spacing: 16) {
-                            Button {
-                                withAnimation(DS.springGentle) {
-                                    viewModel.rateCard(isGood: false)
-                                }
-                            } label: {
-                                Text("Again")
-                                    .font(.system(size: 18, weight: .medium, design: .rounded))
-                                    .foregroundStyle(DS.ink)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 60)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 30, style: .continuous)
-                                            .fill(DS.ghost)
-                                    )
-                            }
-
-                            Button {
-                                withAnimation(DS.springGentle) {
-                                    viewModel.rateCard(isGood: true)
-                                }
-                            } label: {
-                                Text("Good")
-                                    .font(.system(size: 18, weight: .medium, design: .rounded))
-                                    .foregroundStyle(DS.surface)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 60)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 30, style: .continuous)
-                                            .fill(DS.accent)
-                                    )
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
             }
         }
     }

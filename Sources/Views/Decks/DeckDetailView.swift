@@ -92,7 +92,7 @@ struct DeckDetailView: View {
         }
         .navigationTitle(deck.name)
         .navigationBarTitleDisplayMode(.large)
-        .fullScreenCover(isPresented: $showingStudyView) {
+        .sheet(isPresented: $showingStudyView) {
             if let userId = authManager.userId {
                 StudyView(deck: deck, userId: userId)
             }
