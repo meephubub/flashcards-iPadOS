@@ -24,23 +24,27 @@ struct StudyView: View {
         ZStack {
             bgColor.ignoresSafeArea()
 
-            switch viewModel.state {
-            case .loading:
-                ProgressView()
-
-            case .studying, .reviewing:
-                studyContent
-
-            case .finished:
-                finishedView
-            }
-        }
-        .navigationBarHidden(isFullscreen)
-        .fullScreenCover(isPresented: $isFullscreen) {
             if isFullscreen {
                 fullscreenStudyView
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.8).combined(with: .opacity),
+                        removal: .scale(scale: 0.8).combined(with: .opacity)
+                    ))
+            } else {
+                switch viewModel.state {
+                case .loading:
+                    ProgressView()
+
+                case .studying, .reviewing:
+                    studyContent
+
+                case .finished:
+                    finishedView
+                }
             }
         }
+        .navigationBarHidden(true)
+        .animation(DS.expand, value: isFullscreen)
         .task { await viewModel.load() }
         .onDisappear { viewModel.cancelTimer() }
         .onKeyPress(.space) {
