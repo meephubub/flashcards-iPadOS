@@ -7,8 +7,7 @@ struct DeckDetailView: View {
     @State private var cards: [Card] = []
     @State private var dueCount: Int = 0
     @State private var isLoading: Bool = false
-    @State private var navigateToStudy: Bool = false
-    @State private var studyUserId: UUID?
+    @State private var showingStudyView: Bool = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
