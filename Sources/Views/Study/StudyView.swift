@@ -28,18 +28,21 @@ struct StudyView: View {
                 ProgressView()
 
             case .studying, .reviewing:
-                if isFullscreen {
-                    fullscreenStudyContent
-                } else {
-                    studyContent
-                }
+                studyContent
 
             case .finished:
                 finishedView
             }
         }
         .navigationBarHidden(true)
-        .animation(DS.expand, value: isFullscreen)
+        .frame(maxWidth: isExpanded ? .infinity : 600)
+        .frame(maxHeight: isExpanded ? .infinity : 800)
+        .background(
+            RoundedRectangle(cornerRadius: isExpanded ? 0 : 24, style: .continuous)
+                .fill(DS.surface)
+                .shadow(color: .black.opacity(isExpanded ? 0 : 0.2), radius: isExpanded ? 0 : 40, x: 0, y: 20)
+        )
+        .animation(DS.expand, value: isExpanded)
         .task { await viewModel.load() }
         .onDisappear { viewModel.cancelTimer() }
         .onKeyPress(.space) {
@@ -58,9 +61,9 @@ struct StudyView: View {
     private var studyContent: some View {
         VStack(spacing: 0) {
             topBar
-                .padding(.horizontal, 32)
-                .padding(.top, 20)
-                .padding(.bottom, 32)
+                .padding(.horizontal, isExpanded ? 32 : 24)
+                .padding(.top, isExpanded ? 20 : 16)
+                .padding(.bottom, isExpanded ? 32 : 20)
 
             Spacer()
 
@@ -76,8 +79,8 @@ struct StudyView: View {
             Spacer()
 
             bottomControls
-                .padding(.horizontal, 32)
-                .padding(.bottom, 40)
+                .padding(.horizontal, isExpanded ? 32 : 24)
+                .padding(.bottom, isExpanded ? 40 : 24)
         }
     }
 
@@ -95,10 +98,10 @@ struct StudyView: View {
             HStack(spacing: 16) {
                 Button {
                     withAnimation(DS.expand) {
-                        isFullscreen.toggle()
+                        isExpanded.toggle()
                     }
                 } label: {
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    Image(systemName: isExpanded ? "arrow.down.left.and.arrow.up.right" : "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(DS.subtext)
                         .frame(width: 28, height: 28)
