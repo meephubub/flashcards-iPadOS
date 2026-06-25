@@ -65,10 +65,10 @@ struct DecksListView: View {
         VStack(spacing: 16) {
             Image(systemName: searchText.isEmpty ? "rectangle.stack" : "magnifyingglass")
                 .font(.system(size: 48, weight: .thin))
-                .foregroundStyle(Color(.tertiaryLabel))
+                .foregroundStyle(DS.subtext.opacity(0.5))
             Text(searchText.isEmpty ? "No decks yet" : "No results for \"\(searchText)\"")
                 .font(.system(size: 16, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DS.subtext)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
         }
@@ -80,10 +80,10 @@ struct DecksListView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 48, weight: .thin))
-                .foregroundStyle(Color(.tertiaryLabel))
+                .foregroundStyle(DS.subtext.opacity(0.5))
             Text(message)
                 .font(.system(size: 15, weight: .regular, design: .rounded))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DS.subtext)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             Button("Retry") {
@@ -91,7 +91,7 @@ struct DecksListView: View {
                 Task { await loadDecks() }
             }
             .font(.system(size: 15, weight: .semibold, design: .rounded))
-            .foregroundStyle(.primary)
+            .foregroundStyle(DS.ink)
             .padding(.top, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -136,20 +136,20 @@ struct DeckRowView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(deck.name)
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(DS.ink)
                     .lineLimit(1)
 
                 HStack(spacing: 10) {
                     if let count = deck.cardCount {
                         Text("\(count) cards")
                             .font(.system(size: 14, weight: .regular, design: .rounded))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(DS.subtext)
                     }
 
                     if let last = deck.lastStudied, last != "Never" {
                         Text("• \(last)")
                             .font(.system(size: 14, weight: .regular, design: .rounded))
-                            .foregroundStyle(Color(.tertiaryLabel))
+                            .foregroundStyle(DS.subtext.opacity(0.7))
                     }
                 }
             }
@@ -160,10 +160,10 @@ struct DeckRowView: View {
         .padding(.vertical, 18)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(DS.ghost)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color(.separator).opacity(0.2), lineWidth: 0.5)
+                        .stroke(DS.inkFaint, lineWidth: 0.5)
                 )
         )
     }

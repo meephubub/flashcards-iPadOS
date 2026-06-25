@@ -11,7 +11,7 @@ struct DeckDetailView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color(.systemBackground).ignoresSafeArea()
+            DS.surface.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Stats row
@@ -31,16 +31,17 @@ struct DeckDetailView: View {
                 if isLoading {
                     Spacer()
                     ProgressView()
+                        .tint(DS.ink)
                     Spacer()
                 } else if cards.isEmpty {
                     Spacer()
                     VStack(spacing: 12) {
                         Image(systemName: "rectangle.stack")
                             .font(.system(size: 40, weight: .thin))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(DS.subtext)
                         Text("No cards in this deck")
                             .font(.system(size: 15, weight: .medium, design: .rounded))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(DS.subtext)
                     }
                     Spacer()
                 } else {
@@ -59,7 +60,7 @@ struct DeckDetailView: View {
             // Study button
             VStack(spacing: 0) {
                 LinearGradient(
-                    colors: [Color(.systemBackground).opacity(0), Color(.systemBackground)],
+                    colors: [DS.surface.opacity(0), DS.surface],
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -76,17 +77,17 @@ struct DeckDetailView: View {
                         Text(dueCount > 0 ? "Study \(dueCount) Due Cards" : "Study All Cards")
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                     }
-                    .foregroundStyle(Color(.systemBackground))
+                    .foregroundStyle(DS.surface)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .fill(Color(.label))
+                            .fill(DS.accent)
                     )
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
-                .background(Color(.systemBackground))
+                .background(DS.surface)
             }
         }
         .navigationTitle(deck.name)
@@ -109,12 +110,12 @@ struct DeckDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(card.front)
                     .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(DS.ink)
                     .lineLimit(2)
 
                 Text(card.back)
                     .font(.system(size: 12, weight: .regular, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.subtext)
                     .lineLimit(1)
             }
             Spacer()
@@ -123,10 +124,10 @@ struct DeckDetailView: View {
         .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(DS.ghost)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color(.separator).opacity(0.4), lineWidth: 1)
+                        .stroke(DS.inkFaint, lineWidth: 1)
                 )
         )
         .padding(.vertical, 3)
@@ -139,19 +140,19 @@ struct DeckDetailView: View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary)
+                .foregroundStyle(DS.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 11, weight: .regular, design: .rounded))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DS.subtext)
         }
         .frame(maxWidth: .infinity)
     }
 
     private var divider: some View {
         Rectangle()
-            .fill(Color(.separator).opacity(0.5))
+            .fill(DS.inkFaint)
             .frame(width: 1, height: 36)
     }
 
