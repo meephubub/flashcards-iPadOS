@@ -24,23 +24,24 @@ struct StudyView: View {
         ZStack {
             bgColor.ignoresSafeArea()
 
+            switch viewModel.state {
+            case .loading:
+                ProgressView()
+
+            case .studying, .reviewing:
+                studyContent
+
+            case .finished:
+                finishedView
+            }
+
             if isFullscreen {
                 fullscreenStudyView
                     .transition(.asymmetric(
-                        insertion: .scale(scale: 0.8).combined(with: .opacity),
-                        removal: .scale(scale: 0.8).combined(with: .opacity)
+                        insertion: .scale(scale: 0.95).combined(with: .opacity),
+                        removal: .scale(scale: 0.95).combined(with: .opacity)
                     ))
-            } else {
-                switch viewModel.state {
-                case .loading:
-                    ProgressView()
-
-                case .studying, .reviewing:
-                    studyContent
-
-                case .finished:
-                    finishedView
-                }
+                    .zIndex(1)
             }
         }
         .navigationBarHidden(true)
@@ -294,7 +295,8 @@ struct StudyView: View {
 
     private var fullscreenStudyView: some View {
         ZStack {
-            DS.surface.ignoresSafeArea()
+            DS.surface
+                .ignoresSafeArea(.all)
 
             VStack(spacing: 0) {
                 // Top bar with close button
