@@ -1,12 +1,18 @@
 import Foundation
+import Observation
 import Supabase
 
 @Observable
+@MainActor
 final class AuthManager {
 
+    // MARK: - State
+
     var currentUser: User?
-    var isLoading: Bool = false
+    var isLoading = false
     var errorMessage: String?
+
+    // MARK: - Computed Properties
 
     var isAuthenticated: Bool {
         currentUser != nil
@@ -15,6 +21,24 @@ final class AuthManager {
     var userId: UUID? {
         currentUser?.id
     }
+
+    var email: String? {
+        currentUser?.email
+    }
+
+    var username: String? {
+        currentUser?.userMetadata["user_name"]?.stringValue
+    }
+
+    var full_name: String? {
+        currentUser?.userMetadata["full_name"]?.stringValue
+    }
+
+    var avatarUrl: URL? {
+        currentUser?.userMetadata["avatar_url"]?.urlValue
+    }
+
+    // MARK: - Initialisation
 
     init() {
         Task {
@@ -39,15 +63,20 @@ final class AuthManager {
             switch event {
             case .signedIn, .tokenRefreshed, .userUpdated:
                 currentUser = session?.user
-            case .signedOut, .passwordRecovery:
+
+            case .signedOut:
                 currentUser = nil
+
+            case .passwordRecovery:
+                break
+
             default:
                 break
             }
         }
     }
 
-    // MARK: - Auth Actions
+    // MARK: - Authentication
 
     func signIn(email: String, password: String) async {
         isLoading = true
@@ -55,7 +84,11 @@ final class AuthManager {
         defer { isLoading = false }
 
         do {
-            let session = try await supabase.auth.signIn(email: email, password: password)
+            let session = try await supabase.auth.signIn(
+                email: email,
+                password: password
+            )
+
             currentUser = session.user
         } catch {
             errorMessage = error.localizedDescription
@@ -68,7 +101,11 @@ final class AuthManager {
         defer { isLoading = false }
 
         do {
-            let response = try await supabase.auth.signUp(email: email, password: password)
+            let response = try await supabase.auth.signUp(
+                email: email,
+                password: password
+            )
+
             currentUser = response.user
         } catch {
             errorMessage = error.localizedDescription

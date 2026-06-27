@@ -1,288 +1,553 @@
 import SwiftUI
 
-struct DeckDetailView: View {
-    @Environment(AuthManager.self) private var authManager
-    let deck: Deck
+// MARK: - Tag Tree Node
 
-    @State private var cards: [Card] = []
-    @State private var dueCount: Int = 0
-    @State private var isLoading: Bool = false
-    @State private var showingStudyView: Bool = false
-    @State private var isStudyButtonPressed: Bool = false
+struct TagNode: Identifiable {
+    let id: String        // full path e.g. "english/poetry"
+    let label: String     // last component e.g. "poetry"
+    var children: [TagNode] = []
+    var decks: [Deck] = []
+
+    var totalDeckCount: Int {
+        decks.count + children.reduce(0) { $0 + $1.totalDeckCount }
+    }
+}
+
+// MARK: - HomeView
+
+struct HomeView: View {
+    @Environment(AuthManager.self) private var authManager
+
+    @State private var decks: [Deck] = []
+    @State private var isLoading = true
+    @State private var tagTree: [TagNode] = []
+    @State private var expandedNodes: Set<String> = []
+    @State private var headerVisible = false
+    @State private var progressVisible = false
+    @State private var contentVisible = false
+    @State private var showAllDecks = false
+
+    // Progress mock: fraction of due cards studied today
+    var studiedFraction: Double {
+        guard !decks.isEmpty else { return 0 }
+        // Use lastStudied as a proxy; real impl would compare dueCount vs studied
+        let studied = decks.filter { $0.lastStudied != nil && $0.lastStudied != "Never" }.count
+        return Double(studied) / Double(decks.count)
+    }
+
+    var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12: return "Good morning"
+        case 12..<17: return "Good afternoon"
+        default: return "Good evening"
+        }
+    }
+
+    var displayName: String {
+        authManager.fullName ?? authManager.userId.map { _ in "there" } ?? "there"
+    }
+
+    var totalDue: Int {
+        // Sum across all decks' due counts if available; placeholder
+        decks.compactMap { $0.cardCount }.reduce(0, +)
+    }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             DS.surface.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                // Header with deck name
-                header
-                    .padding(.horizontal, 32)
-                    .padding(.top, 16)
-                    .padding(.bottom, 24)
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // ── Greeting ──────────────────────────────────────
+                    greetingSection
+                        .padding(.horizontal, 40)
+                        .padding(.top, 48)
+                        .padding(.bottom, 28)
+                        .opacity(headerVisible ? 1 : 0)
+                        .offset(y: headerVisible ? 0 : 14)
 
-                // Stats cards
-                statsRow
-                    .padding(.horizontal, 32)
-                    .padding(.bottom, 28)
+                    // ── Progress bar ──────────────────────────────────
+                    progressSection
+                        .padding(.horizontal, 40)
+                        .padding(.bottom, 32)
+                        .opacity(progressVisible ? 1 : 0)
+                        .offset(y: progressVisible ? 0 : 10)
 
-                Divider()
-                    .background(DS.inkFaint)
-                    .padding(.leading, 32)
+                    // ── Study button ──────────────────────────────────
+                    studyButton
+                        .padding(.horizontal, 40)
+                        .padding(.bottom, 44)
+                        .opacity(progressVisible ? 1 : 0)
 
-                if isLoading {
-                    Spacer()
-                    ProgressView()
-                        .tint(DS.ink)
-                        .scaleEffect(1.2)
-                    Spacer()
-                } else if cards.isEmpty {
-                    Spacer()
-                    emptyState
-                    Spacer()
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 8) {
-                            ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                                ModernCardRow(card: card)
-                                    .onTapGesture {
-                                        HapticManager.lightImpact()
-                                    }
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal: .move(edge: .leading).combined(with: .opacity)
-                                    ))
-                                    .animation(
-                                        DS.springGentle.delay(Double(index) * 0.03),
-                                        value: cards.count
-                                    )
-                            }
-                        }
-                        .padding(.horizontal, 32)
-                        .padding(.top, 24)
-                        .padding(.bottom, 120)
-                    }
+                    // ── Deck list ─────────────────────────────────────
+                    deckSection
+                        .padding(.horizontal, 40)
+                        .opacity(contentVisible ? 1 : 0)
+                        .offset(y: contentVisible ? 0 : 12)
+
+                    Spacer(minLength: 60)
                 }
-            }
-
-            // Study button
-            VStack(spacing: 0) {
-                LinearGradient(
-                    colors: [DS.surface.opacity(0), DS.surface],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 60)
-                .allowsHitTesting(false)
-
-                Button {
-                    HapticManager.mediumImpact()
-                    showingStudyView = true
-                } label: {
-                    HStack(spacing: 10) {
-                        ZStack {
-                            Circle()
-                                .fill(DS.surface.opacity(0.2))
-                                .frame(width: 36, height: 36)
-
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(DS.surface)
-                        }
-
-                        Text(dueCount > 0 ? "Study \(dueCount) Due Cards" : "Study All Cards")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
-                            .tracking(0.3)
-                    }
-                    .foregroundStyle(DS.surface)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .fill(DS.ink)
-                    )
-                    .shadow(color: DS.ink.opacity(0.15), radius: 12, x: 0, y: 6)
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .padding(.horizontal, 32)
-                .padding(.bottom, 28)
-                .background(DS.surface)
             }
         }
         .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
         .navigationBarHidden(true)
-        .sheet(isPresented: $showingStudyView) {
-            if let userId = authManager.userId {
-                StudyView(deck: deck, userId: userId)
-            }
-        }
         .task {
-            await loadCards()
+            await loadDecks()
+        }
+        .onAppear {
+            animateIn()
         }
     }
 
-    // MARK: - Header
+    // MARK: - Greeting
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(deck.name)
-                .font(.system(size: 36, weight: .light, design: .rounded))
+    private var greetingSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("\(greeting), \(displayName)")
+                .font(.system(size: 28, weight: .light, design: .rounded))
                 .foregroundStyle(DS.ink)
-                .tracking(-0.5)
-                .lineLimit(2)
+                .tracking(-0.3)
 
-            if let description = deck.description, !description.isEmpty {
-                Text(description)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(DS.subtext)
-                    .lineLimit(2)
-            }
+            Text(totalDue > 0 ? "\(totalDue) cards ready to review." : "Ready to study?")
+                .font(.system(size: 15, weight: .regular, design: .rounded))
+                .foregroundStyle(DS.subtext)
         }
     }
 
-    // MARK: - Stats Row
+    // MARK: - Progress
 
-    private var statsRow: some View {
-        HStack(spacing: 12) {
-            statCard(
-                value: "\(deck.cardCount ?? cards.count)",
-                label: "Total Cards",
-                icon: "rectangle.stack.fill"
-            )
+    private var progressSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AnimatedProgressBar(fraction: studiedFraction)
+                .frame(height: 6)
+        }
+    }
 
-            statCard(
-                value: "\(dueCount)",
-                label: dueCount == 1 ? "Due Card" : "Due Cards",
-                icon: "clock.fill",
-                isAccent: dueCount > 0
-            )
+    // MARK: - Study Button
 
-            if let last = deck.lastStudied, last != "Never" {
-                statCard(
-                    value: last,
-                    label: "Last Studied",
-                    icon: "calendar.fill"
+    @State private var studyButtonPressed = false
+
+    private var studyButton: some View {
+        Button {
+            HapticManager.mediumImpact()
+        } label: {
+            Text("Study")
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .tracking(0.2)
+                .foregroundStyle(DS.surface)
+                .frame(width: 100, height: 42)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(DS.ink)
                 )
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+
+    // MARK: - Deck Section
+
+    private var deckSection: some View {
+        VStack(spacing: 0) {
+            // Header row
+            HStack {
+                Text("DECKS")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(DS.subtext)
+
+                Spacer()
+
+                if decks.count > 3 {
+                    Button {
+                        withAnimation(DS.springGentle) {
+                            showAllDecks.toggle()
+                        }
+                        HapticManager.lightImpact()
+                    } label: {
+                        Text(showAllDecks ? "Show less" : "Show all \(decks.count)")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundStyle(DS.accent)
+                    }
+                }
+            }
+            .padding(.bottom, 16)
+
+            if isLoading {
+                deckSkeletonRows
+            } else if tagTree.isEmpty {
+                emptyState
+            } else {
+                tagTreeList
             }
         }
     }
 
-    private func statCard(value: String, label: String, icon: String, isAccent: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(isAccent ? DS.accent : DS.subtext)
+    // MARK: - Tag Tree List
 
-                Text(label)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(DS.subtext)
-                    .tracking(0.5)
+    private var tagTreeList: some View {
+        VStack(spacing: 0) {
+            let visibleNodes = showAllDecks ? tagTree : Array(tagTree.prefix(5))
+            ForEach(Array(visibleNodes.enumerated()), id: \.element.id) { index, node in
+                TagNodeRow(
+                    node: node,
+                    depth: 0,
+                    expandedNodes: $expandedNodes,
+                    animationDelay: Double(index) * 0.05
+                )
+                .transition(.asymmetric(
+                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                    removal: .opacity
+                ))
+
+                if index < visibleNodes.count - 1 {
+                    Divider()
+                        .background(DS.inkFaint)
+                }
             }
-
-            Text(value)
-                .font(.system(size: 22, weight: .semibold, design: .rounded))
-                .foregroundStyle(DS.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(DS.ghost)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: 0, style: .continuous))
+    }
+
+    // MARK: - Skeleton
+
+    private var deckSkeletonRows: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<3, id: \.self) { i in
+                HStack {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(DS.ghost)
+                        .frame(width: CGFloat.random(in: 60...120), height: 13)
+                    Spacer()
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(DS.ghost)
+                        .frame(width: 60, height: 13)
+                }
+                .padding(.vertical, 16)
+                .shimmer()
+
+                if i < 2 { Divider().background(DS.inkFaint) }
+            }
+        }
     }
 
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             Image(systemName: "rectangle.stack")
-                .font(.system(size: 56, weight: .ultraLight))
+                .font(.system(size: 40, weight: .ultraLight))
                 .foregroundStyle(DS.subtext.opacity(0.3))
-
-            Text("No cards in this deck")
-                .font(.system(size: 16, weight: .medium, design: .rounded))
+            Text("No decks yet")
+                .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(DS.subtext)
-                .tracking(0.2)
         }
-        .transition(.opacity)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
     }
 
-    // MARK: - Data loading
+    // MARK: - Data
 
-    private func loadCards() async {
-        guard let userId = authManager.userId else { return }
+    private func loadDecks() async {
+        guard let userId = authManager.userId else { isLoading = false; return }
         isLoading = true
         defer { isLoading = false }
         do {
-            cards = try await CardService.fetchCards(for: deck.id)
-            let studyCards = try await CardService.fetchStudyCards(for: deck.id, userId: userId)
-            let now = Date()
-            dueCount = studyCards.filter { _, progress in
-                guard let due = progress?.dueDate else { return true }
-                return due <= now
-            }.count
-        } catch {
-            // silently fail; card list will be empty
+            decks = try await DeckService.fetchDecks(for: userId)
+            tagTree = buildTagTree(from: decks)
+        } catch {}
+    }
+
+    /// Builds a tree from decks using their `tag` field.
+    /// Tags like "english/poetry" create nested nodes.
+    private func buildTagTree(from decks: [Deck]) -> [TagNode] {
+        var roots: [String: TagNode] = [:]
+
+        func insert(deck: Deck, into tree: inout [String: TagNode], pathComponents: [String], fullPath: String) {
+            guard !pathComponents.isEmpty else { return }
+            let component = pathComponents[0]
+            let nodePath = fullPath.components(separatedBy: "/")
+                .prefix(fullPath.components(separatedBy: "/").count - pathComponents.count + 1)
+                .joined(separator: "/")
+
+            if tree[component] == nil {
+                tree[component] = TagNode(id: nodePath, label: component)
+            }
+
+            if pathComponents.count == 1 {
+                tree[component]!.decks.append(deck)
+            } else {
+                var children = tree[component]!.children
+                var childMap: [String: TagNode] = Dictionary(
+                    uniqueKeysWithValues: children.map { ($0.label, $0) }
+                )
+                insert(deck: deck, into: &childMap, pathComponents: Array(pathComponents.dropFirst()), fullPath: fullPath)
+                tree[component]!.children = childMap.values.sorted { $0.label < $1.label }
+            }
+        }
+
+        for deck in decks {
+            let tag = deck.tag ?? "uncategorised"
+            let components = tag.split(separator: "/").map(String.init)
+            insert(deck: deck, into: &roots, pathComponents: components, fullPath: tag)
+        }
+
+        return roots.values.sorted { $0.label < $1.label }
+    }
+
+    // MARK: - Animation
+
+    private func animateIn() {
+        withAnimation(DS.springGentle) { headerVisible = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            withAnimation(DS.springGentle) { progressVisible = true }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+            withAnimation(DS.springGentle) { contentVisible = true }
         }
     }
 }
 
-// MARK: - Modern Card Row
+// MARK: - Tag Node Row
 
-struct ModernCardRow: View {
-    let card: Card
+struct TagNodeRow: View {
+    let node: TagNode
+    let depth: Int
+    @Binding var expandedNodes: Set<String>
+    var animationDelay: Double = 0
 
-    @State private var isPressed: Bool = false
+    @State private var appeared = false
+    @State private var isPressed = false
+
+    var isExpanded: Bool { expandedNodes.contains(node.id) }
+    var hasChildren: Bool { !node.children.isEmpty }
+    var indentWidth: CGFloat { CGFloat(depth) * 16 }
 
     var body: some View {
-        HStack(spacing: 16) {
-            // Card icon
-            ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(DS.ghost)
-                    .frame(width: 44, height: 44)
+        VStack(spacing: 0) {
+            // Row itself
+            Button {
+                HapticManager.lightImpact()
+                withAnimation(DS.springSnappy) {
+                    if isExpanded {
+                        expandedNodes.remove(node.id)
+                    } else {
+                        expandedNodes.insert(node.id)
+                    }
+                }
+            } label: {
+                HStack(spacing: 0) {
+                    if depth > 0 {
+                        // Indent guide line
+                        HStack(spacing: 0) {
+                            ForEach(0..<depth, id: \.self) { _ in
+                                Rectangle()
+                                    .fill(DS.inkFaint)
+                                    .frame(width: 1)
+                                    .padding(.leading, 8)
+                                    .padding(.trailing, 7)
+                            }
+                        }
+                    }
 
-                Image(systemName: "doc.text.fill")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(DS.ink.opacity(0.6))
+                    Text(node.label)
+                        .font(.system(size: 15, weight: depth == 0 ? .regular : .light, design: .rounded))
+                        .foregroundStyle(DS.ink)
+
+                    Spacer()
+
+                    HStack(spacing: 6) {
+                        Text("\(node.totalDeckCount) \(node.totalDeckCount == 1 ? "deck" : "decks")")
+                            .font(.system(size: 13, weight: .regular, design: .rounded))
+                            .foregroundStyle(DS.subtext)
+
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(DS.subtext)
+                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                            .animation(DS.springSnappy, value: isExpanded)
+                    }
+                }
+                .padding(.vertical, 16)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(PlainButtonStyle())
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+            .animation(DS.springSnappy, value: isPressed)
+            ._onButtonGesture(pressing: { pressing in
+                withAnimation(DS.springSnappy) { isPressed = pressing }
+            }, perform: {})
 
-            // Card content
-            VStack(alignment: .leading, spacing: 6) {
-                Text(card.front)
-                    .font(.system(size: 15, weight: .medium, design: .rounded))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(2)
+            // Expanded children
+            if isExpanded {
+                VStack(spacing: 0) {
+                    // Direct decks
+                    ForEach(node.decks) { deck in
+                        DeckInlineRow(deck: deck, depth: depth + 1)
+                        Divider().background(DS.inkFaint)
+                    }
 
-                Text(card.back)
-                    .font(.system(size: 13, weight: .regular, design: .rounded))
-                    .foregroundStyle(DS.subtext)
-                    .lineLimit(1)
+                    // Child tag nodes
+                    ForEach(Array(node.children.enumerated()), id: \.element.id) { idx, child in
+                        TagNodeRow(
+                            node: child,
+                            depth: depth + 1,
+                            expandedNodes: $expandedNodes
+                        )
+                        if idx < node.children.count - 1 {
+                            Divider().background(DS.inkFaint)
+                        }
+                    }
+                }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .top).combined(with: .opacity),
+                    removal: .move(edge: .top).combined(with: .opacity)
+                ))
             }
-
-            Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(DS.surface)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(DS.inkFaint, lineWidth: 1)
-                )
-        )
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 8)
+        .onAppear {
+            withAnimation(DS.springGentle.delay(animationDelay)) {
+                appeared = true
+            }
+        }
+    }
+}
+
+// MARK: - Deck Inline Row
+
+struct DeckInlineRow: View {
+    let deck: Deck
+    let depth: Int
+
+    @State private var isPressed = false
+    @State private var navigating = false
+
+    var body: some View {
+        NavigationLink(destination: DeckDetailView(deck: deck)) {
+            HStack(spacing: 0) {
+                // Indent lines
+                HStack(spacing: 0) {
+                    ForEach(0..<depth, id: \.self) { _ in
+                        Rectangle()
+                            .fill(DS.inkFaint)
+                            .frame(width: 1)
+                            .padding(.leading, 8)
+                            .padding(.trailing, 7)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(deck.name)
+                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                        .foregroundStyle(DS.ink)
+
+                    if let desc = deck.description, !desc.isEmpty {
+                        Text(desc)
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundStyle(DS.subtext)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer()
+
+                if let count = deck.cardCount, count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundStyle(DS.subtext)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule().fill(DS.ghost)
+                        )
+                }
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(DS.inkFaint)
+                    .padding(.leading, 8)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .animation(DS.springSnappy, value: isPressed)
         ._onButtonGesture(pressing: { pressing in
-            withAnimation(DS.springSnappy) {
-                isPressed = pressing
-            }
+            withAnimation(DS.springSnappy) { isPressed = pressing }
+            if pressing { HapticManager.lightImpact() }
         }, perform: {})
+    }
+}
+
+// MARK: - Animated Progress Bar
+
+struct AnimatedProgressBar: View {
+    let fraction: Double
+
+    @State private var animatedFraction: Double = 0
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                // Track
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(DS.ghost)
+                    .frame(height: 6)
+
+                // Fill
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [DS.ink, DS.ink.opacity(0.7)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: geo.size.width * animatedFraction, height: 6)
+                    .animation(.spring(response: 0.9, dampingFraction: 0.75).delay(0.3), value: animatedFraction)
+            }
+        }
+        .onAppear {
+            animatedFraction = max(fraction, fraction == 0 ? 0 : 0.04)
+        }
+        .onChange(of: fraction) { _, new in
+            animatedFraction = new
+        }
+    }
+}
+
+// MARK: - Shimmer modifier
+
+struct ShimmerModifier: ViewModifier {
+    @State private var phase: CGFloat = -1
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: phase - 0.3),
+                        .init(color: DS.surface.opacity(0.5), location: phase),
+                        .init(color: .clear, location: phase + 0.3)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .onAppear {
+                    withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
+                        phase = 1.3
+                    }
+                }
+            )
+            .clipped()
+    }
+}
+
+extension View {
+    func shimmer() -> some View {
+        modifier(ShimmerModifier())
     }
 }
