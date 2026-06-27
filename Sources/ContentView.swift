@@ -115,7 +115,7 @@ struct DecksTabView: View {
 
             if let deckID = selectedDeckID,
                let deck = decks.first(where: { $0.id == deckID }) {
-                DeckDetailView(deck: deck)
+                DeckDetailContentView(deck: deck)
             } else {
                 emptyDetail
             }

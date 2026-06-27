@@ -13,10 +13,11 @@ struct TagNode: Identifiable {
     }
 }
 
-// MARK: - HomeView
+// MARK: - DecksListView
 
-struct HomeView: View {
+struct DecksListView: View {
     @Environment(AuthManager.self) private var authManager
+    @Binding var selectedDeckID: Int?
 
     @State private var decks: [Deck] = []
     @State private var isLoading = true
@@ -45,7 +46,7 @@ struct HomeView: View {
     }
 
     var displayName: String {
-        authManager.fullName ?? authManager.userId.map { _ in "there" } ?? "there"
+        authManager.full_name ?? authManager.userId.map { _ in "there" } ?? "there"
     }
 
     var totalDue: Int {
@@ -193,6 +194,7 @@ struct HomeView: View {
                     node: node,
                     depth: 0,
                     expandedNodes: $expandedNodes,
+                    selectedDeckID: $selectedDeckID,
                     animationDelay: Double(index) * 0.05
                 )
                 .transition(.asymmetric(
@@ -277,7 +279,7 @@ struct HomeView: View {
             if pathComponents.count == 1 {
                 tree[component]!.decks.append(deck)
             } else {
-                var children = tree[component]!.children
+                let children = tree[component]!.children
                 var childMap: [String: TagNode] = Dictionary(
                     uniqueKeysWithValues: children.map { ($0.label, $0) }
                 )
@@ -314,6 +316,7 @@ struct TagNodeRow: View {
     let node: TagNode
     let depth: Int
     @Binding var expandedNodes: Set<String>
+    @Binding var selectedDeckID: Int?
     var animationDelay: Double = 0
 
     @State private var appeared = false
@@ -383,7 +386,7 @@ struct TagNodeRow: View {
                 VStack(spacing: 0) {
                     // Direct decks
                     ForEach(node.decks) { deck in
-                        DeckInlineRow(deck: deck, depth: depth + 1)
+                        DeckInlineRow(deck: deck, depth: depth + 1, selectedDeckID: $selectedDeckID)
                         Divider().background(DS.inkFaint)
                     }
 
@@ -392,7 +395,8 @@ struct TagNodeRow: View {
                         TagNodeRow(
                             node: child,
                             depth: depth + 1,
-                            expandedNodes: $expandedNodes
+                            expandedNodes: $expandedNodes,
+                            selectedDeckID: $selectedDeckID
                         )
                         if idx < node.children.count - 1 {
                             Divider().background(DS.inkFaint)
@@ -420,12 +424,13 @@ struct TagNodeRow: View {
 struct DeckInlineRow: View {
     let deck: Deck
     let depth: Int
+    @Binding var selectedDeckID: Int?
 
     @State private var isPressed = false
     @State private var navigating = false
 
     var body: some View {
-        NavigationLink(destination: DeckDetailView(deck: deck)) {
+        NavigationLink(destination: DeckDetailContentView(deck: deck)) {
             HStack(spacing: 0) {
                 // Indent lines
                 HStack(spacing: 0) {

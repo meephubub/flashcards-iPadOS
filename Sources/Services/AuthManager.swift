@@ -35,7 +35,7 @@ final class AuthManager {
     }
 
     var avatarUrl: URL? {
-        currentUser?.userMetadata["avatar_url"]?.urlValue
+        currentUser?.userMetadata["avatar_url"]?.stringValue.flatMap { URL(string: $0) }
     }
 
     // MARK: - Initialisation
